@@ -360,8 +360,8 @@ impl LiveTradingEngine {
                 
                 bar_count += 1;
                 
-                // Update every 500ms for smoother continuous market
-                thread::sleep(Duration::from_millis(500));
+                // Update every 200ms for more responsive UI
+                thread::sleep(Duration::from_millis(200));
             }
         });
     }
