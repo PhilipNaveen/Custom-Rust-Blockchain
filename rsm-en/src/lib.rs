@@ -16,3 +16,5 @@ pub mod backtester;
 pub mod backtester_v2;
 pub mod traders;
 pub mod visualization;
+pub mod benchmark;
+pub mod live_trading;

@@ -13,6 +13,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 hex = "0.4"
 plotters = "0.3"
+tiny_http = "0.12"
 
 [[bin]]
 name = "blockchain"
@@ -25,3 +26,7 @@ path = "src/web_main.rs"
 [[bin]]
 name = "trading_backtest"
 path = "src/trading_main.rs"
+
+[[bin]]
+name = "trading_server"
+path = "src/trading_server.rs"

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhlopChain - Live Trading Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            margin-bottom: 20px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .header .subtitle {
+            color: #00cc00;
+            font-size: 1.1rem;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            border: 2px solid #00ff00;
+            background: rgba(0, 20, 0, 0.8);
+            padding: 20px;
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #00ff00;
+            text-transform: uppercase;
+        }
+
+        .pnl-display {
+            font-size: 3rem;
+            text-align: center;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 2px solid #00ff00;
+            background: rgba(0, 0, 0, 0.5);
+            font-weight: bold;
+        }
+
+        .pnl-positive { color: #00ff00; }
+        .pnl-negative { color: #ff0000; }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .stat-label {
+            color: #00cc00;
+        }
+
+        .stat-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00cc00;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            background: rgba(0, 255, 0, 0.2);
+            outline: none;
+            border: 1px solid #00ff00;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #00ff00;
+            cursor: pointer;
+            border: 2px solid #00ff00;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+        }
+
+        .value-display {
+            text-align: right;
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 10px 0;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 0, 0.4);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            border-color: #ff0000;
+            color: #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 0, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+
+        .chart-container {
+            height: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .order-book {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+        }
+
+        .order-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            padding: 5px;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+        }
+
+        .order-row.header {
+            color: #00cc00;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            background: rgba(0, 20, 0, 0.9);
+        }
+
+        .bid { color: #00ff00; }
+        .ask { color: #ff0000; }
+
+        .trade-log {
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        .trade-entry {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid #00ff00;
+            background: rgba(0, 255, 0, 0.05);
+        }
+
+        .trade-entry.loss {
+            border-left-color: #ff0000;
+            background: rgba(255, 0, 0, 0.05);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        .status-inactive { background: #666; }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.3; }
+        }
+
+        .market-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            border: 1px solid rgba(0, 255, 0, 0.5);
+            padding: 15px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .info-value {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #00cc00;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 0, 0.5);
+            border: 1px solid #00ff00;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            border-bottom: 1px dotted #00ff00;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: rgba(0, 20, 0, 0.95);
+            color: #00ff00;
+            text-align: center;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            font-size: 0.85rem;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>⚡ PHLOPCHAIN TRADING TERMINAL ⚡</h1>
+            <div class="subtitle">Ultra-Low-Latency Market Making • Template Metaprogramming Optimized</div>
+        </div>
+
+        <div class="grid-layout">
+            <!-- Left Panel: Controls & Stats -->
+            <div>
+                <div class="panel">
+                    <div class="panel-title">💰 P&L TRACKER</div>
+                    <div class="pnl-display" id="pnlDisplay">$0.00</div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">Initial Capital:</span>
+                        <span class="stat-value" id="initialCapital">$100,000</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Current Value:</span>
+                        <span class="stat-value" id="currentValue">$100,000</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Return:</span>
+                        <span class="stat-value" id="returnPct">0.00%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Trades:</span>
+                        <span class="stat-value" id="totalTrades">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Win Rate:</span>
+                        <span class="stat-value" id="winRate">0.00%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Sharpe Ratio:</span>
+                        <span class="stat-value" id="sharpeRatio">0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Max Drawdown:</span>
+                        <span class="stat-value" id="maxDrawdown">0.00%</span>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">⚙️ STRATEGY PARAMETERS</div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="tooltip">Max Inventory
+                                <span class="tooltiptext">Maximum position size allowed (units)</span>
+                            </span>
+                        </label>
+                        <input type="range" id="maxInventory" min="1" max="10" step="0.5" value="5">
+                        <div class="value-display"><span id="maxInventoryVal">5.0</span> units</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="tooltip">Entry Threshold
+                                <span class="tooltiptext">Price deviation required to enter trade (basis points)</span>
+                            </span>
+                        </label>
+                        <input type="range" id="entryThreshold" min="5" max="100" step="5" value="50">
+                        <div class="value-display"><span id="entryThresholdVal">50</span> bps</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="tooltip">EKF Process Noise
+                                <span class="tooltiptext">Kalman filter process uncertainty (lower = smoother)</span>
+                            </span>
+                        </label>
+                        <input type="range" id="processNoise" min="0.001" max="0.1" step="0.001" value="0.01">
+                        <div class="value-display"><span id="processNoiseVal">0.010</span></div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="tooltip">Measurement Noise
+                                <span class="tooltiptext">Observation noise (higher = trust data less)</span>
+                            </span>
+                        </label>
+                        <input type="range" id="measurementNoise" min="0.1" max="2.0" step="0.1" value="0.5">
+                        <div class="value-display"><span id="measurementNoiseVal">0.5</span></div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="tooltip">Lookback Period
+                                <span class="tooltiptext">Number of bars for volatility calculation</span>
+                            </span>
+                        </label>
+                        <input type="range" id="lookback" min="20" max="200" step="10" value="60">
+                        <div class="value-display"><span id="lookbackVal">60</span> bars</div>
+                    </div>
+
+                    <button class="btn" id="startBtn" onclick="startTrading()">START TRADING</button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopTrading()" disabled>STOP TRADING</button>
+                    <button class="btn" onclick="resetStrategy()">RESET STRATEGY</button>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">📊 SYSTEM STATUS</div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <span class="status-indicator" id="statusIndicator"></span>
+                            Trading Status:
+                        </span>
+                        <span class="stat-value" id="tradingStatus">OFFLINE</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Market Bars:</span>
+                        <span class="stat-value" id="marketBars">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Current Price:</span>
+                        <span class="stat-value" id="currentPrice">$0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">EKF Estimate:</span>
+                        <span class="stat-value" id="ekfEstimate">$0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Position:</span>
+                        <span class="stat-value" id="currentPosition">0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Latency:</span>
+                        <span class="stat-value" id="latency">0 μs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Charts & Data -->
+            <div>
+                <div class="market-info">
+                    <div class="info-card">
+                        <div class="info-value" id="bestBid">$0.00</div>
+                        <div class="info-label">BEST BID</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-value" id="midPrice">$0.00</div>
+                        <div class="info-label">MID PRICE</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-value" id="bestAsk">$0.00</div>
+                        <div class="info-label">BEST ASK</div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🎮 MANUAL TRADING</div>
+                    <div style="display: flex; gap: 20px; justify-content: center; padding: 20px;">
+                        <button onclick="executeTrade('buy')" style="flex: 1; padding: 20px; font-size: 1.2rem; background: linear-gradient(135deg, #00ff00, #00cc00); color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,255,0,0.3);">
+                            BUY @ MARKET
+                        </button>
+                        <button onclick="executeTrade('sell')" style="flex: 1; padding: 20px; font-size: 1.2rem; background: linear-gradient(135deg, #ff0000, #cc0000); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(255,0,0,0.3);">
+                            SELL @ MARKET
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">📈 EQUITY CURVE</div>
+                    <div class="chart-container">
+                        <canvas id="equityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-grid" style="margin-top: 20px;">
+                    <div class="panel">
+                        <div class="panel-title">💹 PRICE & TRADES</div>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-title">📉 DRAWDOWN</div>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="drawdownChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">📋 TRADE LOG</div>
+                    <div class="trade-log" id="tradeLog">
+                        <div style="text-align: center; color: #00cc00; padding: 20px;">
+                            No trades yet. Start trading to see your history.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isTrading = false;
+        let sessionId = null;
+        
+        // Chart instances
+        let equityChart = null;
+        let priceChart = null;
+        let drawdownChart = null;
+        
+        // Data storage
+        let equityData = [];
+        let priceData = [];
+        let drawdownData = [];
+        let tradeHistory = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            setupControlListeners();
+        });
+
+        function setupControlListeners() {
+            const controls = [
+                { id: 'maxInventory', display: 'maxInventoryVal', format: v => v.toFixed(1) },
+                { id: 'entryThreshold', display: 'entryThresholdVal', format: v => v },
+                { id: 'processNoise', display: 'processNoiseVal', format: v => v.toFixed(3) },
+                { id: 'measurementNoise', display: 'measurementNoiseVal', format: v => v.toFixed(1) },
+                { id: 'lookback', display: 'lookbackVal', format: v => v }
+            ];
+
+            controls.forEach(ctrl => {
+                const input = document.getElementById(ctrl.id);
+                const display = document.getElementById(ctrl.display);
+                input.addEventListener('input', () => {
+                    display.textContent = ctrl.format(parseFloat(input.value));
+                    if (isTrading) {
+                        sendParameterUpdate();
+                    }
+                });
+            });
+        }
+
+        function initializeCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 0 },
+                scales: {
+                    x: { 
+                        ticks: { color: '#00ff00' },
+                        grid: { color: 'rgba(0, 255, 0, 0.1)' }
+                    },
+                    y: { 
+                        ticks: { color: '#00ff00' },
+                        grid: { color: 'rgba(0, 255, 0, 0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: { 
+                        labels: { color: '#00ff00' }
+                    }
+                }
+            };
+
+            equityChart = new Chart(document.getElementById('equityChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Portfolio Value',
+                        data: [],
+                        borderColor: '#00ff00',
+                        backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                        tension: 0.1,
+                        borderWidth: 2
+                    }]
+                },
+                options: chartOptions
+            });
+
+            priceChart = new Chart(document.getElementById('priceChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Market Price',
+                            data: [],
+                            borderColor: '#00ff00',
+                            backgroundColor: 'rgba(0, 255, 0, 0.05)',
+                            tension: 0.1,
+                            borderWidth: 2,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'EKF Estimate',
+                            data: [],
+                            borderColor: '#00ccff',
+                            backgroundColor: 'transparent',
+                            tension: 0.1,
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: chartOptions
+            });
+
+            drawdownChart = new Chart(document.getElementById('drawdownChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Drawdown %',
+                        data: [],
+                        borderColor: '#ff0000',
+                        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                        tension: 0.1,
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        ...chartOptions.scales,
+                        y: {
+                            ...chartOptions.scales.y,
+                            reverse: true,
+                            min: 0
+                        }
+                    }
+                }
+            });
+        }
+
+        async function startTrading() {
+            try {
+                const response = await fetch('/api/trading/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getStrategyParameters())
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    sessionId = result.session_id;
+                    isTrading = true;
+                    
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    document.getElementById('tradingStatus').textContent = 'ACTIVE';
+                    document.getElementById('statusIndicator').className = 'status-indicator status-active blink';
+                    
+                    startPolling();
+                } else {
+                    alert('Failed to start trading: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error starting trading:', error);
+                alert('Failed to start trading session');
+            }
+        }
+
+        async function stopTrading() {
+            if (!sessionId) return;
+
+            try {
+                await fetch('/api/trading/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                isTrading = false;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('tradingStatus').textContent = 'STOPPED';
+                document.getElementById('statusIndicator').className = 'status-indicator status-inactive';
+            } catch (error) {
+                console.error('Error stopping trading:', error);
+            }
+        }
+
+        async function resetStrategy() {
+            if (isTrading) {
+                await stopTrading();
+            }
+            
+            equityData = [];
+            priceData = [];
+            drawdownData = [];
+            tradeHistory = [];
+            
+            equityChart.data.labels = [];
+            equityChart.data.datasets[0].data = [];
+            equityChart.update();
+            
+            priceChart.data.labels = [];
+            priceChart.data.datasets[0].data = [];
+            priceChart.data.datasets[1].data = [];
+            priceChart.update();
+            
+            drawdownChart.data.labels = [];
+            drawdownChart.data.datasets[0].data = [];
+            drawdownChart.update();
+            
+            document.getElementById('tradeLog').innerHTML = '<div style="text-align: center; color: #00cc00; padding: 20px;">No trades yet. Start trading to see your history.</div>';
+            
+            updateStats({
+                pnl: 0,
+                current_value: 100000,
+                total_trades: 0,
+                win_rate: 0,
+                sharpe_ratio: 0,
+                max_drawdown: 0
+            });
+        }
+
+        function getStrategyParameters() {
+            return {
+                max_inventory: parseFloat(document.getElementById('maxInventory').value),
+                entry_threshold: parseFloat(document.getElementById('entryThreshold').value),
+                process_noise: parseFloat(document.getElementById('processNoise').value),
+                measurement_noise: parseFloat(document.getElementById('measurementNoise').value),
+                lookback: parseInt(document.getElementById('lookback').value),
+                initial_capital: 100000
+            };
+        }
+
+        function sendParameterUpdate() {
+            // Parameter updates handled on next poll
+            console.log('Parameters updated');
+        }
+
+        async function startPolling() {
+            console.log('Starting polling for session:', sessionId);
+            pollForUpdates();
+        }
+
+        async function pollForUpdates() {
+            if (!isTrading || !sessionId) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/trading/poll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                const data = await response.json();
+                
+                // Check if we got actual data (not empty object)
+                if (data && data.bar_number !== undefined) {
+                    handleMarketUpdate(data);
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+
+            // Continue polling if still trading
+            if (isTrading) {
+                setTimeout(pollForUpdates, 100); // Poll every 100ms
+            }
+        }
+
+        function handleMarketUpdate(data) {
+            // Update stats
+            updateStats(data.stats);
+            
+            // Update market info
+            document.getElementById('marketBars').textContent = data.bar_number || 0;
+            document.getElementById('currentPrice').textContent = `$${(data.current_price || 0).toFixed(2)}`;
+            document.getElementById('ekfEstimate').textContent = `$${(data.ekf_estimate || 0).toFixed(2)}`;
+            document.getElementById('currentPosition').textContent = (data.position || 0).toFixed(4);
+            document.getElementById('latency').textContent = `${data.latency || 0} μs`;
+            
+            document.getElementById('bestBid').textContent = `$${(data.best_bid || 0).toFixed(2)}`;
+            document.getElementById('midPrice').textContent = `$${(data.mid_price || 0).toFixed(2)}`;
+            document.getElementById('bestAsk').textContent = `$${(data.best_ask || 0).toFixed(2)}`;
+            
+            // Update charts
+            if (data.equity_history) {
+                updateEquityChart(data.equity_history);
+            }
+            
+            if (data.price_history) {
+                updatePriceChart(data.price_history, data.ekf_history);
+            }
+            
+            if (data.drawdown_history) {
+                updateDrawdownChart(data.drawdown_history);
+            }
+            
+            // Handle new trade
+            if (data.new_trade) {
+                addTradeToLog(data.new_trade);
+            }
+        }
+
+        function updateStats(stats) {
+            const pnl = stats.pnl || 0;
+            const pnlDisplay = document.getElementById('pnlDisplay');
+            pnlDisplay.textContent = `$${pnl.toFixed(2)}`;
+            pnlDisplay.className = 'pnl-display ' + (pnl >= 0 ? 'pnl-positive' : 'pnl-negative');
+            
+            document.getElementById('currentValue').textContent = `$${(stats.current_value || 100000).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('returnPct').textContent = `${(stats.return_pct || 0).toFixed(2)}%`;
+            document.getElementById('totalTrades').textContent = stats.total_trades || 0;
+            document.getElementById('winRate').textContent = `${(stats.win_rate || 0).toFixed(2)}%`;
+            document.getElementById('sharpeRatio').textContent = (stats.sharpe_ratio || 0).toFixed(2);
+            document.getElementById('maxDrawdown').textContent = `${(stats.max_drawdown || 0).toFixed(2)}%`;
+        }
+
+        function updateEquityChart(data) {
+            equityChart.data.labels = data.map((_, i) => i);
+            equityChart.data.datasets[0].data = data;
+            equityChart.update('none');
+        }
+
+        function updatePriceChart(priceData, ekfData) {
+            const labels = priceData.map((_, i) => i);
+            priceChart.data.labels = labels;
+            priceChart.data.datasets[0].data = priceData;
+            priceChart.data.datasets[1].data = ekfData || [];
+            priceChart.update('none');
+        }
+
+        function updateDrawdownChart(data) {
+            drawdownChart.data.labels = data.map((_, i) => i);
+            drawdownChart.data.datasets[0].data = data.map(d => Math.abs(d));
+            drawdownChart.update('none');
+        }
+
+        function addTradeToLog(trade) {
+            const tradeLog = document.getElementById('tradeLog');
+            
+            if (tradeLog.innerHTML.includes('No trades yet')) {
+                tradeLog.innerHTML = '';
+            }
+            
+            const isProfit = trade.pnl >= 0;
+            const entry = document.createElement('div');
+            entry.className = 'trade-entry' + (isProfit ? '' : ' loss');
+            
+            const sideStr = trade.side === 'Buy' ? 'BUY' : 'SELL';
+            const sideColor = trade.side === 'Buy' ? '#00ff00' : '#ff6666';
+            
+            entry.innerHTML = `
+                <div><strong style="color: ${sideColor}">${sideStr}</strong> ${trade.quantity.toFixed(4)} @ $${trade.price.toFixed(2)}</div>
+                <div>P&L: <strong style="color: ${isProfit ? '#00ff00' : '#ff0000'}">${isProfit ? '+' : ''}$${trade.pnl.toFixed(2)}</strong></div>
+                <div style="font-size: 0.8rem; color: #00cc00;">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            tradeLog.insertBefore(entry, tradeLog.firstChild);
+            
+            // Keep only last 50 trades
+            while (tradeLog.children.length > 50) {
+                tradeLog.removeChild(tradeLog.lastChild);
+            }
+        }
+
+        async function executeTrade(side) {
+            if (!isTrading || !sessionId) {
+                alert('Please start trading first!');
+                return;
+            }
+
+            const currentPrice = parseFloat(document.getElementById('currentPrice').textContent.replace('$', ''));
+            
+            try {
+                const response = await fetch('/api/trading/trade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        side: side,
+                        price: currentPrice
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    console.error('Trade error:', result.error);
+                    alert('Trade failed: ' + result.error);
+                } else {
+                    // Trade executed successfully - will appear in log on next poll
+                    console.log('Trade executed:', result);
+                    addTradeToLog(result);
+                }
+            } catch (error) {
+                console.error('Error executing trade:', error);
+                alert('Failed to execute trade');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhlopChain - Live Trading Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: white;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 95%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: black;
+            border-bottom: 2px solid black;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .card {
+            background: white;
+            border: 2px solid black;
+            border-radius: 5px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: black;
+            color: white;
+            padding: 20px;
+            border-radius: 3px;
+            text-align: center;
+            border: 2px solid black;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .controls-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: black;
+            color: white;
+            border: 2px solid black;
+            padding: 12px 30px;
+            border-radius: 3px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: white;
+            color: black;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            border-color: #ccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .btn-buy {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .btn-buy:hover {
+            background: #218838;
+            border-color: #218838;
+            color: white;
+        }
+
+        .btn-sell {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        .btn-sell:hover {
+            background: #c82333;
+            border-color: #c82333;
+            color: white;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin: 20px 0;
+        }
+
+        .trade-log {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 10px;
+        }
+
+        .trade-entry {
+            background: #f9f9f9;
+            border-left: 4px solid #28a745;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+
+        .trade-entry.sell {
+            border-left-color: #dc3545;
+        }
+
+        .pnl-display {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid black;
+            border-radius: 5px;
+        }
+
+        .pnl-positive { color: #28a745; }
+        .pnl-negative { color: #dc3545; }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .param-controls {
+            display: grid;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: #555;
+            flex: 1;
+        }
+
+        .control-group input[type="range"] {
+            flex: 2;
+        }
+
+        .control-group .value-display {
+            flex: 1;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: black;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PhlopChain Live Trading</h1>
+            <p>Real-time Market Making with Extended Kalman Filter</p>
+        </div>
+
+        <!-- PNL Display -->
+        <div class="pnl-display" id="pnlDisplay">
+            $0.00
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="currentValue">$100,000</div>
+                <div class="stat-label">Portfolio Value</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="returnPct">0.00%</div>
+                <div class="stat-label">Return</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="currentPosition">0.00</div>
+                <div class="stat-label">Position</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="currentPrice">$50,000</div>
+                <div class="stat-label">Market Price</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalTrades">0</div>
+                <div class="stat-label">Total Trades</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sharpeRatio">0.00</div>
+                <div class="stat-label">Sharpe Ratio</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="controls-section">
+                <button class="btn" id="startBtn" onclick="startTrading()">START TRADING</button>
+                <button class="btn" id="stopBtn" onclick="stopTrading()" disabled>STOP TRADING</button>
+                <button class="btn" onclick="resetStrategy()">RESET STRATEGY</button>
+                
+                <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+                    <span style="font-weight: bold;">AUTOTRADE:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autotradeToggle" onchange="toggleAutotrade()">
+                        <span class="slider"></span>
+                    </label>
+                    <span id="autotradeStatus" style="font-weight: bold; color: #dc3545;">OFF</span>
+                </div>
+            </div>
+            
+            <div class="controls-section" style="margin-top: 20px;">
+                <button class="btn btn-buy" onclick="executeTrade('buy')" id="buyBtn" disabled>BUY @ MARKET</button>
+                <button class="btn btn-sell" onclick="executeTrade('sell')" id="sellBtn" disabled>SELL @ MARKET</button>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="card">
+            <h3 style="margin-bottom: 20px; font-size: 1.5rem;">📈 Market Price & EKF Estimate</h3>
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="grid-2col">
+            <div class="card">
+                <h3 style="margin-bottom: 20px; font-size: 1.5rem;">💰 Equity Curve</h3>
+                <div class="chart-container">
+                    <canvas id="equityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 20px; font-size: 1.5rem;">📉 Drawdown</h3>
+                <div class="chart-container">
+                    <canvas id="drawdownChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parameters and Trade Log -->
+        <div class="grid-2col">
+            <div class="card">
+                <h3 style="margin-bottom: 20px; font-size: 1.5rem;">⚙️ Strategy Parameters</h3>
+                <div class="param-controls">
+                    <div class="control-group">
+                        <label>Max Inventory:</label>
+                        <input type="range" id="maxInventory" min="1" max="10" step="0.5" value="5">
+                        <div class="value-display"><span id="maxInventoryVal">5.0</span> units</div>
+                    </div>
+                    <div class="control-group">
+                        <label>Entry Threshold:</label>
+                        <input type="range" id="entryThreshold" min="5" max="100" step="5" value="50">
+                        <div class="value-display"><span id="entryThresholdVal">50</span> bps</div>
+                    </div>
+                    <div class="control-group">
+                        <label>Process Noise:</label>
+                        <input type="range" id="processNoise" min="0.001" max="0.1" step="0.001" value="0.01">
+                        <div class="value-display"><span id="processNoiseVal">0.010</span></div>
+                    </div>
+                    <div class="control-group">
+                        <label>Measurement Noise:</label>
+                        <input type="range" id="measurementNoise" min="0.1" max="2.0" step="0.1" value="0.5">
+                        <div class="value-display"><span id="measurementNoiseVal">0.5</span></div>
+                    </div>
+                    <div class="control-group">
+                        <label>Lookback:</label>
+                        <input type="range" id="lookback" min="20" max="200" step="10" value="60">
+                        <div class="value-display"><span id="lookbackVal">60</span> bars</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 20px; font-size: 1.5rem;">📋 Trade Log</h3>
+                <div class="trade-log" id="tradeLog">
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        No trades yet. Start trading to see your history.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isTrading = false;
+        let sessionId = null;
+        let autotradeEnabled = false;
+        let lastAutotradeTime = 0;
+        let autotradeCooldown = 2000; // 2 seconds between autotrades
+        
+        // Chart instances
+        let equityChart = null;
+        let priceChart = null;
+        let drawdownChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            setupControlListeners();
+        });
+
+        function setupControlListeners() {
+            const controls = [
+                { id: 'maxInventory', display: 'maxInventoryVal', format: v => v.toFixed(1) },
+                { id: 'entryThreshold', display: 'entryThresholdVal', format: v => v },
+                { id: 'processNoise', display: 'processNoiseVal', format: v => v.toFixed(3) },
+                { id: 'measurementNoise', display: 'measurementNoiseVal', format: v => v.toFixed(1) },
+                { id: 'lookback', display: 'lookbackVal', format: v => v }
+            ];
+
+            controls.forEach(ctrl => {
+                const input = document.getElementById(ctrl.id);
+                const display = document.getElementById(ctrl.display);
+                input.addEventListener('input', () => {
+                    display.textContent = ctrl.format(input.value);
+                });
+            });
+        }
+
+        function initializeCharts() {
+            // Price chart with EKF
+            const priceCtx = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(priceCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Market Price',
+                            data: [],
+                            borderColor: 'black',
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'EKF Estimate',
+                            data: [],
+                            borderColor: '#666',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            ticks: { color: '#333' },
+                            grid: { color: '#e0e0e0' }
+                        },
+                        x: { 
+                            ticks: { color: '#333' },
+                            grid: { color: '#e0e0e0' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#333' } }
+                    }
+                }
+            });
+
+            // Equity chart
+            const equityCtx = document.getElementById('equityChart').getContext('2d');
+            equityChart = new Chart(equityCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Portfolio Value',
+                        data: [],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            ticks: { color: '#333' },
+                            grid: { color: '#e0e0e0' }
+                        },
+                        x: { 
+                            ticks: { color: '#333' },
+                            grid: { color: '#e0e0e0' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#333' } }
+                    }
+                }
+            });
+
+            // Drawdown chart
+            const drawdownCtx = document.getElementById('drawdownChart').getContext('2d');
+            drawdownChart = new Chart(drawdownCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Drawdown %',
+                        data: [],
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    scales: {
+                        y: { 
+                            reverse: true,
+                            beginAtZero: true,
+                            ticks: { color: '#333' },
+                            grid: { color: '#e0e0e0' }
+                        },
+                        x: { 
+                            ticks: { color: '#333' },
+                            grid: { color: '#e0e0e0' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#333' } }
+                    }
+                }
+            });
+        }
+
+        async function startTrading() {
+            try {
+                const params = getStrategyParameters();
+                const response = await fetch('/api/trading/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+
+                const data = await response.json();
+                sessionId = data.session_id;
+                isTrading = true;
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('buyBtn').disabled = false;
+                document.getElementById('sellBtn').disabled = false;
+
+                startPolling();
+            } catch (error) {
+                console.error('Error starting trading:', error);
+                alert('Failed to start trading');
+            }
+        }
+
+        async function stopTrading() {
+            try {
+                isTrading = false;
+                
+                if (sessionId) {
+                    await fetch('/api/trading/stop', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+                }
+
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('buyBtn').disabled = true;
+                document.getElementById('sellBtn').disabled = true;
+            } catch (error) {
+                console.error('Error stopping trading:', error);
+            }
+        }
+
+        async function resetStrategy() {
+            if (isTrading) {
+                await stopTrading();
+            }
+            
+            equityChart.data.labels = [];
+            equityChart.data.datasets[0].data = [];
+            equityChart.update();
+            
+            priceChart.data.labels = [];
+            priceChart.data.datasets[0].data = [];
+            priceChart.data.datasets[1].data = [];
+            priceChart.update();
+            
+            drawdownChart.data.labels = [];
+            drawdownChart.data.datasets[0].data = [];
+            drawdownChart.update();
+            
+            document.getElementById('tradeLog').innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No trades yet. Start trading to see your history.</div>';
+            
+            updateStats({
+                pnl: 0,
+                current_value: 100000,
+                return_pct: 0,
+                total_trades: 0,
+                win_rate: 0,
+                sharpe_ratio: 0,
+                max_drawdown: 0
+            });
+            
+            document.getElementById('currentPosition').textContent = '0.00';
+            document.getElementById('currentPrice').textContent = '$50,000';
+        }
+
+        function getStrategyParameters() {
+            return {
+                max_inventory: parseFloat(document.getElementById('maxInventory').value),
+                entry_threshold: parseFloat(document.getElementById('entryThreshold').value),
+                process_noise: parseFloat(document.getElementById('processNoise').value),
+                measurement_noise: parseFloat(document.getElementById('measurementNoise').value),
+                lookback: parseInt(document.getElementById('lookback').value),
+                initial_capital: 100000
+            };
+        }
+
+        async function startPolling() {
+            pollForUpdates();
+        }
+
+        async function pollForUpdates() {
+            if (!isTrading || !sessionId) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/trading/poll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                const data = await response.json();
+                
+                if (data && data.bar_number !== undefined) {
+                    handleMarketUpdate(data);
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+
+            if (isTrading) {
+                setTimeout(pollForUpdates, 100);
+            }
+        }
+
+        function handleMarketUpdate(data) {
+            console.log(`Market update: bar=${data.bar_number}, price=$${data.current_price.toFixed(2)}, ekf=$${data.ekf_estimate.toFixed(2)}, position=${data.position.toFixed(2)}`);
+            
+            updateStats(data.stats);
+            
+            document.getElementById('currentPrice').textContent = `$${(data.current_price || 0).toFixed(2)}`;
+            document.getElementById('currentPosition').textContent = (data.position || 0).toFixed(4);
+            
+            if (data.equity_history) {
+                updateEquityChart(data.equity_history);
+            }
+            
+            if (data.price_history) {
+                updatePriceChart(data.price_history, data.ekf_history);
+            }
+            
+            if (data.drawdown_history) {
+                updateDrawdownChart(data.drawdown_history);
+            }
+            
+            if (data.new_trade) {
+                addTradeToLog(data.new_trade);
+            }
+            
+            // Autotrade logic with cooldown
+            if (autotradeEnabled && data.ekf_estimate && data.current_price) {
+                const now = Date.now();
+                const deviation = Math.abs(data.current_price - data.ekf_estimate) / data.current_price;
+                const threshold = parseFloat(document.getElementById('entryThreshold').value) / 10000;
+                const position = data.position || 0;
+                const maxInventory = parseFloat(document.getElementById('maxInventory').value);
+                
+                if (deviation > threshold && Math.abs(position) < maxInventory && (now - lastAutotradeTime) > autotradeCooldown) {
+                    if (data.current_price < data.ekf_estimate && position < maxInventory) {
+                        console.log(`Autotrade BUY: price=${data.current_price.toFixed(2)}, ekf=${data.ekf_estimate.toFixed(2)}, deviation=${(deviation*100).toFixed(2)}%`);
+                        executeTrade('buy');
+                        lastAutotradeTime = now;
+                    } else if (data.current_price > data.ekf_estimate && position > -maxInventory) {
+                        console.log(`Autotrade SELL: price=${data.current_price.toFixed(2)}, ekf=${data.ekf_estimate.toFixed(2)}, deviation=${(deviation*100).toFixed(2)}%`);
+                        executeTrade('sell');
+                        lastAutotradeTime = now;
+                    }
+                }
+            }
+        }
+
+        function updateStats(stats) {
+            const pnl = stats.pnl || 0;
+            const pnlDisplay = document.getElementById('pnlDisplay');
+            pnlDisplay.textContent = `$${pnl.toFixed(2)}`;
+            pnlDisplay.className = 'pnl-display ' + (pnl >= 0 ? 'pnl-positive' : 'pnl-negative');
+            
+            document.getElementById('currentValue').textContent = `$${(stats.current_value || 100000).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('returnPct').textContent = `${(stats.return_pct || 0).toFixed(2)}%`;
+            document.getElementById('totalTrades').textContent = stats.total_trades || 0;
+            document.getElementById('sharpeRatio').textContent = (stats.sharpe_ratio || 0).toFixed(2);
+        }
+
+        function updateEquityChart(data) {
+            equityChart.data.labels = data.map((_, i) => i);
+            equityChart.data.datasets[0].data = data;
+            equityChart.update('none');
+        }
+
+        function updatePriceChart(priceData, ekfData) {
+            const labels = priceData.map((_, i) => i);
+            priceChart.data.labels = labels;
+            priceChart.data.datasets[0].data = priceData;
+            priceChart.data.datasets[1].data = ekfData || [];
+            priceChart.update('none');
+        }
+
+        function updateDrawdownChart(data) {
+            drawdownChart.data.labels = data.map((_, i) => i);
+            drawdownChart.data.datasets[0].data = data.map(d => Math.abs(d));
+            drawdownChart.update('none');
+        }
+
+        function addTradeToLog(trade) {
+            const tradeLog = document.getElementById('tradeLog');
+            
+            if (tradeLog.innerHTML.includes('No trades yet')) {
+                tradeLog.innerHTML = '';
+            }
+            
+            const isProfit = trade.pnl >= 0;
+            const entry = document.createElement('div');
+            entry.className = 'trade-entry' + (trade.side === 'Sell' ? ' sell' : '');
+            
+            const sideStr = trade.side === 'Buy' ? 'BUY' : 'SELL';
+            const sideColor = trade.side === 'Buy' ? '#28a745' : '#dc3545';
+            
+            entry.innerHTML = `
+                <div><strong style="color: ${sideColor}">${sideStr}</strong> ${trade.quantity.toFixed(4)} @ $${trade.price.toFixed(2)}</div>
+                <div>P&L: <strong style="color: ${isProfit ? '#28a745' : '#dc3545'}">${isProfit ? '+' : ''}$${trade.pnl.toFixed(2)}</strong></div>
+                <div style="font-size: 0.85rem; color: #666;">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            tradeLog.insertBefore(entry, tradeLog.firstChild);
+            
+            while (tradeLog.children.length > 50) {
+                tradeLog.removeChild(tradeLog.lastChild);
+            }
+        }
+
+        async function executeTrade(side) {
+            if (!isTrading || !sessionId) {
+                alert('Please start trading first!');
+                return;
+            }
+
+            const currentPrice = parseFloat(document.getElementById('currentPrice').textContent.replace('$', '').replace(',', ''));
+            
+            try {
+                const response = await fetch('/api/trading/trade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        side: side,
+                        price: currentPrice
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    console.error('Trade error:', result.error);
+                } else {
+                    addTradeToLog(result);
+                }
+            } catch (error) {
+                console.error('Error executing trade:', error);
+            }
+        }
+
+        function toggleAutotrade() {
+            autotradeEnabled = document.getElementById('autotradeToggle').checked;
+            const statusEl = document.getElementById('autotradeStatus');
+            
+            if (autotradeEnabled) {
+                statusEl.textContent = 'ON';
+                statusEl.style.color = '#28a745';
+            } else {
+                statusEl.textContent = 'OFF';
+                statusEl.style.color = '#dc3545';
+            }
+        }
+    </script>
+</body>
+</html>

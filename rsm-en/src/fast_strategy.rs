@@ -1,7 +1,6 @@
 /// High-performance trading strategy using compile-time optimization
 /// Uses const generics (Rust's template metaprogramming) for zero-cost abstractions
 
-use crate::market::{MarketBar, OrderSide};
 use crate::strategy::{Signal, Strategy, StrategyContext};
 
 /// Fixed-size ring buffer for price history - compile-time sized for cache efficiency
@@ -189,13 +188,14 @@ impl<const N: usize> Strategy for FastMarketMaker<N> {
 
         // Fast deviation calculation with inventory adjustment
         let price_deviation_bps = ((current_price - price_est) / price_est) * 10000.0;
-        let inventory_adj = inventory * 10.0;
+        let inventory_adj = inventory * 5.0;
 
         // Branch prediction friendly - most common case first (Hold)
         // Only trade on significant deviations adjusted for inventory risk
-        if price_deviation_bps < -50.0 + inventory_adj && inventory.abs() < self.max_inventory {
+        // Threshold: 10 bps base + inventory adjustment
+        if price_deviation_bps < -10.0 + inventory_adj && inventory.abs() < self.max_inventory {
             Signal::Buy
-        } else if price_deviation_bps > 50.0 + inventory_adj && inventory.abs() < self.max_inventory {
+        } else if price_deviation_bps > 10.0 + inventory_adj && inventory.abs() < self.max_inventory {
             Signal::Sell
         } else {
             Signal::Hold

@@ -39,6 +39,11 @@ fn main() {
     // Show trader statistics
     market.print_trader_stats();
 
+    // Run latency benchmark
+    use rsm_en::benchmark::StrategyBenchmark;
+    let benchmark = StrategyBenchmark::new(10); // 10 iterations through all bars
+    benchmark.benchmark_hot_path(&bars);
+
     // Backtest parameters
     let initial_capital = 100000.0;
     let position_size = 0.95;
