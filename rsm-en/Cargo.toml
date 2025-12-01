@@ -3,11 +3,16 @@ name = "rsm-en"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "rsm_en"
+path = "src/lib.rs"
+
 [dependencies]
 sha2 = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 hex = "0.4"
+plotters = "0.3"
 
 [[bin]]
 name = "blockchain"
@@ -16,3 +21,7 @@ path = "src/main.rs"
 [[bin]]
 name = "web_server"
 path = "src/web_main.rs"
+
+[[bin]]
+name = "trading_backtest"
+path = "src/trading_main.rs"

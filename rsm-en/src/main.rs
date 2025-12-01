@@ -1,12 +1,12 @@
 use crate::blockchain::Blockchain;
 use crate::transaction::Transaction;
 
-mod balances;
-mod system;
-mod merkle;
-mod transaction;
-mod blockchain;
-mod rps_mining;
+pub mod balances;
+pub mod system;
+pub mod merkle;
+pub mod transaction;
+pub mod blockchain;
+pub mod rps_mining;
 
 fn main() {
     println!("PhlopChain - Fast Merkle Tree Blockchain Implementation");
