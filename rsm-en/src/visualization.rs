@@ -93,7 +93,7 @@ impl TradingVisualizer {
 
             root.present()?;
         }
-        println!("✅ Generated: {}", filename);
+        println!("Generated: {}", filename);
         Ok(filename)
     }
 
@@ -220,7 +220,7 @@ impl TradingVisualizer {
 
             root.present()?;
         }
-        println!("✅ Generated: {}", filename);
+        println!("Generated: {}", filename);
         Ok(filename)
     }
 
@@ -286,7 +286,7 @@ impl TradingVisualizer {
 
             root.present()?;
         }
-        println!("✅ Generated: {}", filename);
+        println!("Generated: {}", filename);
         Ok(filename)
     }
 
@@ -366,7 +366,7 @@ impl TradingVisualizer {
 
             root.present()?;
         }
-        println!("✅ Generated: {}", filename);
+        println!("Generated: {}", filename);
         Ok(filename)
     }
 
@@ -498,7 +498,7 @@ impl TradingVisualizer {
 
             root.present()?;
         }
-        println!("✅ Generated: {}", filename);
+        println!("Generated: {}", filename);
         Ok(filename)
     }
 }

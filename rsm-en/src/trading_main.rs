@@ -1,33 +1,30 @@
-use rsm_en::market;
-use rsm_en::market_simulation::MarketSimulator;
-use rsm_en::strategy::{MovingAverageCrossover, MeanReversion, Momentum, RSIStrategy};
+use rsm_en::orderbook_market::OrderBookMarket;
+use rsm_en::strategy::KalmanStatArb;
 use rsm_en::backtester_v2::{Backtester, TransactionCosts, ExecutionModel};
 use rsm_en::visualization::TradingVisualizer;
 
 fn main() {
-    println!("PhlopChain Quantitative Trading Backtester v2");
-    println!("{}", "=".repeat(70));
-    println!("Realistic Market Simulation with Comprehensive Backtesting");
-    println!("{}", "=".repeat(70));
+    println!("PhlopChain Quantitative Trading Backtester - Kalman Filter Market Making");
+    println!("{}", "=".repeat(80));
+    println!("Order Book Market Simulation with Real Bid-Ask Spreads");
+    println!("{}", "=".repeat(80));
 
-    // Create market simulator
-    let symbols = vec!["BTC/USD".to_string()];
-    let mut market_sim = MarketSimulator::new(symbols);
-
-    println!("\n🎲 Generating realistic market data...");
-    println!("   Using RPS-based price movements with:");
-    println!("   • Volatility clustering (GARCH effects)");
-    println!("   • Regime switching (trending/mean-reverting)");
-    println!("   • Realistic order book depth");
-    println!("   • Microstructure noise and bid-ask spreads");
-    
+    // Create order book market with realistic depth
+    let symbol = "BTC/USD".to_string();
     let initial_price = 50000.0;
-    market_sim.set_initial_price("BTC/USD", initial_price);
-    let num_bars = 1000;
+    let mut market = OrderBookMarket::new(symbol, initial_price);
 
-    let bars = market_sim.simulate_session("BTC/USD", initial_price, num_bars);
+    println!("\nGenerating realistic order book market data...");
+    println!("   Realistic order book with bid-ask spreads (5-15 bps)");
+    println!("   Multiple levels of market depth");
+    println!("   Market makers providing liquidity");
+    println!("   Heterogeneous trader population (1430 traders)");
+    println!("   Real price formation from order matching");
+    
+    let num_bars = 10000; // Much longer simulation
+    let bars = market.simulate_session(num_bars);
 
-    println!("\n✅ Generated {} bars of market data", bars.len());
+    println!("\nGenerated {} bars of market data", bars.len());
     println!("   Initial Price: ${:.2}", bars[0].close);
     println!("   Final Price:   ${:.2}", bars.last().unwrap().close);
     println!("   Price Change:  {:.2}%", 
@@ -37,19 +34,22 @@ fn main() {
     let avg_volume = total_volume / bars.len() as f64;
     println!("   Avg Volume:    {:.2}", avg_volume);
     println!("   Total Trades:  {}", bars.iter().filter(|b| b.volume > 0.0).count());
+    println!("   Final Spread:  {:.2} bps", market.get_spread_bps());
     
     // Show trader statistics
-    market_sim.print_trader_stats();
+    market.print_trader_stats();
 
     // Backtest parameters
     let initial_capital = 100000.0;
     let position_size = 0.95;
 
-    println!("\n📊 Backtesting with Realistic Execution:");
+    println!("\n{}", "=".repeat(80));
+    println!("BACKTESTING KALMAN FILTER MARKET MAKING");
+    println!("{}", "=".repeat(80));
     println!("   Initial Capital: ${:.2}", initial_capital);
     println!("   Commission:      0.1% per trade");
     println!("   Slippage:        5 basis points");
-    println!("   Market Impact:   sqrt model");
+    println!("   Market Impact:   Square root model");
     println!("   Position Size:   {:.0}%", position_size * 100.0);
     println!("   Stop Loss:       5%");
 
@@ -60,95 +60,55 @@ fn main() {
         market_impact_factor: 0.1,
     };
 
-    // Strategy 1: Moving Average Crossover
-    println!("\n🔄 Strategy 1: Moving Average Crossover (10/50)");
-    let mut ma_strategy = MovingAverageCrossover::new(10, 50);
-    let mut backtester1 = Backtester::new(initial_capital)
-        .with_costs(costs.clone())
-        .with_execution_model(ExecutionModel::Realistic)
-        .with_risk_controls(position_size, 0.05);
-    let result1 = backtester1.run_backtest(&mut ma_strategy, &bars, position_size);
-    result1.print_summary();
-
-    // Strategy 2: Mean Reversion
-    println!("\n📉 Strategy 2: Mean Reversion (30 period, z-score ±2.0)");
-    let mut mr_strategy = MeanReversion::new(30, 2.0, 0.5);
-    let mut backtester2 = Backtester::new(initial_capital)
-        .with_costs(costs.clone())
-        .with_execution_model(ExecutionModel::Realistic)
-        .with_risk_controls(position_size, 0.05);
-    let result2 = backtester2.run_backtest(&mut mr_strategy, &bars, position_size);
-    result2.print_summary();
-
-    // Strategy 3: Momentum
-    println!("\n🚀 Strategy 3: Momentum (20 period, 1.5% threshold)");
-    let mut mom_strategy = Momentum::new(20, 0.015);
-    let mut backtester3 = Backtester::new(initial_capital)
-        .with_costs(costs.clone())
-        .with_execution_model(ExecutionModel::Realistic)
-        .with_risk_controls(position_size, 0.05);
-    let result3 = backtester3.run_backtest(&mut mom_strategy, &bars, position_size);
-    result3.print_summary();
-
-    // Strategy 4: RSI
-    println!("\n📈 Strategy 4: RSI (14 period, 30/70)");
-    let mut rsi_strategy = RSIStrategy::new(14, 30.0, 70.0);
-    let mut backtester4 = Backtester::new(initial_capital)
-        .with_costs(costs.clone())
-        .with_execution_model(ExecutionModel::Realistic)
-        .with_risk_controls(position_size, 0.05);
-    let result4 = backtester4.run_backtest(&mut rsi_strategy, &bars, position_size);
-    result4.print_summary();
-
-    // Compare strategies
-    println!("\n{}", "=".repeat(70));
-    println!("STRATEGY COMPARISON");
-    println!("{}", "=".repeat(70));
+    // Extended Kalman Filter Market Making Strategy
+    println!("\nStrategy Parameters:");
+    println!("   Algorithm:          EKF Market Maker");
+    println!("   State Model:        Price + Velocity (2D observations)");
+    println!("   Lookback Period:    60 bars (volatility estimation)");
+    println!("   Spread Width:       50 basis points");
+    println!("   Max Inventory:      2.0 units");
+    println!("   Inventory Skew:     0.05 (quote adjustment per unit)");
+    println!("");
+    println!("   EKF Configuration:");
+    println!("     State Vector:     [price, velocity, acceleration]");
+    println!("     Observations:     [price, velocity] (no noisy acceleration)");
+    println!("     Process Noise Q:  [0.01, 0.1, 0.5] (adaptive dynamics)");
+    println!("     Measurement R:    0.5 (observation noise)");
+    println!("     Nesterov Beta:    0.9 (momentum coefficient)");
+    println!("     Nesterov Gamma:   0.999 (lookahead factor)");
+    println!("");
+    println!("   Market Making Logic:");
+    println!("     - Estimate true price + velocity using EKF");
+    println!("     - Post bid below estimate, ask above estimate");
+    println!("     - Adjust quotes based on velocity (momentum)");
+    println!("     - Skew quotes based on inventory (lean against)");
+    println!("     - Profit from bid-ask spread");
+    println!("     - Maintain inventory neutrality");
     
-    let results = vec![
-        ("MA Crossover", &result1),
-        ("Mean Reversion", &result2),
-        ("Momentum", &result3),
-        ("RSI", &result4),
-    ];
+    // Wider spread (100 bps), larger max inventory (5 units), higher skew (0.2)
+    let mut kalman_strategy = KalmanStatArb::new(60, 100.0, 5.0, 0.2);
+    let mut backtester = Backtester::new(initial_capital)
+        .with_costs(costs.clone())
+        .with_execution_model(ExecutionModel::Realistic)
+        .with_risk_controls(position_size, 0.05);
+    
+    println!("\nRunning backtest...");
+    let result = backtester.run_backtest(&mut kalman_strategy, &bars, position_size);
+    
+    println!("\n{}", "=".repeat(80));
+    println!("BACKTEST RESULTS");
+    println!("{}", "=".repeat(80));
+    result.print_summary();
 
-    println!("{:<20} {:>12} {:>12} {:>12} {:>12} {:>10}", 
-        "Strategy", "Return %", "Sharpe", "Sortino", "Max DD %", "Win Rate %");
-    println!("{}", "-".repeat(82));
-
-    for (name, result) in &results {
-        let m = &result.metrics;
-        println!("{:<20} {:>12.2} {:>12.4} {:>12.4} {:>12.2} {:>10.2}",
-            name,
-            m.total_return * 100.0,
-            m.sharpe_ratio,
-            m.sortino_ratio,
-            m.max_drawdown * 100.0,
-            m.win_rate * 100.0,
-        );
-    }
-
-    // Find best strategy
-    let best_strategy = results.iter()
-        .max_by(|a, b| a.1.metrics.sharpe_ratio.partial_cmp(&b.1.metrics.sharpe_ratio).unwrap())
-        .unwrap();
-
-    println!("\n🏆 Best Strategy by Sharpe Ratio: {}", best_strategy.0);
-    println!("   Sharpe Ratio:   {:.4}", best_strategy.1.metrics.sharpe_ratio);
-    println!("   Sortino Ratio:  {:.4}", best_strategy.1.metrics.sortino_ratio);
-    println!("   Return:         {:.2}%", best_strategy.1.metrics.total_return * 100.0);
-    println!("   Max Drawdown:   {:.2}%", best_strategy.1.metrics.max_drawdown * 100.0);
-
-    // Show some sample trades from best strategy
-    println!("\n📋 Sample Trades from {} (first 5):", best_strategy.0);
-    for (i, trade) in best_strategy.1.trade_history.iter().take(5).enumerate() {
-        let side_emoji = match trade.side {
-            market::OrderSide::Buy => "🟢",
-            market::OrderSide::Sell => "🔴",
-        };
-        println!("   {}. {} {:?} {:.4} @ ${:.2} (intended: ${:.2}, slippage: ${:.2})",
+    // Show sample trades
+    println!("\nSample Trades (first 10):");
+    println!("{:<5} {:<10} {:<10} {:<12} {:<12} {:<12}", 
+        "No.", "Side", "Quantity", "Fill Price", "Intended", "Slippage");
+    println!("{}", "-".repeat(80));
+    
+    for (i, trade) in result.trade_history.iter().take(10).enumerate() {
+        println!("{:<5} {:<10?} {:<10.4} ${:<11.2} ${:<11.2} ${:<11.4}",
             i + 1,
-            side_emoji,
             trade.side,
             trade.quantity,
             trade.fill_price,
@@ -158,40 +118,37 @@ fn main() {
     }
 
     // Generate visualizations
-    println!("\n{}", "=".repeat(70));
-    println!("📊 GENERATING VISUALIZATIONS");
-    println!("{}", "=".repeat(70));
+    println!("\n{}", "=".repeat(80));
+    println!("GENERATING VISUALIZATIONS");
+    println!("{}", "=".repeat(80));
     
     let visualizer = TradingVisualizer::new("trading_charts".to_string());
     
-    println!("\nGenerating charts for all strategies...");
-    for (name, result) in &results {
-        println!("\n📈 Generating charts for: {}", name);
-        match visualizer.generate_all(result, &bars) {
-            Ok(files) => {
-                println!("   ✅ Generated {} charts", files.len());
-            }
-            Err(e) => {
-                println!("   ❌ Error generating charts: {}", e);
+    println!("\nGenerating charts...");
+    match visualizer.generate_all(&result, &bars) {
+        Ok(files) => {
+            println!("   Generated {} charts successfully", files.len());
+            println!("   Output directory: trading_charts/");
+            for file in files {
+                println!("      - {}", file);
             }
         }
+        Err(e) => {
+            println!("   Error generating charts: {}", e);
+        }
     }
-    
-    println!("\n📁 Charts saved to: trading_charts/");
-    println!("   Open the PNG files to view detailed analysis");
 
     // Demonstrate the blockchain connection
-    println!("\n{}", "=".repeat(70));
-    println!("🔗 BLOCKCHAIN CONNECTION");
-    println!("{}", "=".repeat(70));
-    println!("This trading system leverages concepts from your PhlopChain:");
-    println!("  • Market orders use Hash verification (like transactions)");
-    println!("  • Price movements generated via RPS mining mechanism");
-    println!("  • Order matching uses deterministic algorithms");
-    println!("  • Trade history is immutable and cryptographically linked");
-    println!("  • Market simulation uses blockchain's merkle tree concepts");
-    println!("  • Heterogeneous trader population (1430 traders total)");
-    println!("  • Realistic volume distribution and order flow");
+    println!("\n{}", "=".repeat(80));
+    println!("BLOCKCHAIN INTEGRATION");
+    println!("{}", "=".repeat(80));
+    println!("This trading system leverages PhlopChain concepts:");
+    println!("  - Market orders use cryptographic hash verification");
+    println!("  - Price movements generated via RPS mining mechanism");
+    println!("  - Order matching uses deterministic algorithms");
+    println!("  - Trade history is immutable and cryptographically linked");
+    println!("  - Market simulation incorporates merkle tree concepts");
+    println!("  - Heterogeneous trader population creates realistic dynamics");
     
-    println!("\n✨ Backtest Complete!");
+    println!("\nBacktest Complete!");
 }

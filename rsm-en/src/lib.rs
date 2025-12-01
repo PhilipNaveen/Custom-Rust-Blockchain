@@ -9,6 +9,7 @@ pub mod rps_mining;
 // Trading/market modules
 pub mod market;
 pub mod market_simulation;
+pub mod orderbook_market;
 pub mod strategy;
 pub mod backtester;
 pub mod backtester_v2;

@@ -416,7 +416,7 @@ impl MarketSimulator {
         let mut bars = Vec::new();
         let mut current_base_price = initial_price;
 
-        println!("\n🎯 Simulating {} bars with {} traders...", num_bars, self.traders.traders.len());
+        println!("\nSimulating {} bars with {} traders...", num_bars, self.traders.traders.len());
 
         for bar_idx in 0..num_bars {
             let bar_start_time = self.current_time;

@@ -304,24 +304,24 @@ impl OrderBook {
         new_trades
     }
 
-    pub fn get_best_bid(&self) -> Option<f64> {
-        self.bids.values().next().map(|level| level.price)
+    pub fn get_best_bid(&self) -> Option<(f64, f64)> {
+        self.bids.values().next().map(|level| (level.price, level.total_quantity))
     }
 
-    pub fn get_best_ask(&self) -> Option<f64> {
-        self.asks.values().next().map(|level| level.price)
+    pub fn get_best_ask(&self) -> Option<(f64, f64)> {
+        self.asks.values().next().map(|level| (level.price, level.total_quantity))
     }
 
     pub fn get_mid_price(&self) -> Option<f64> {
         match (self.get_best_bid(), self.get_best_ask()) {
-            (Some(bid), Some(ask)) => Some((bid + ask) / 2.0),
+            (Some((bid, _)), Some((ask, _))) => Some((bid + ask) / 2.0),
             _ => self.last_price,
         }
     }
 
     pub fn get_spread(&self) -> Option<f64> {
         match (self.get_best_bid(), self.get_best_ask()) {
-            (Some(bid), Some(ask)) => Some(ask - bid),
+            (Some((bid, _)), Some((ask, _))) => Some(ask - bid),
             _ => None,
         }
     }
