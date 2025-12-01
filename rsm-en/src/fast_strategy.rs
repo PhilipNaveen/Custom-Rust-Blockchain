@@ -143,7 +143,6 @@ impl<const DT: i32> FastEKF<DT> {
 pub struct FastMarketMaker<const N: usize> {
     ekf: FastEKF<1000>, // DT = 1000 (1.0 time units)
     price_history: RingBuffer<N>,
-    inventory: f64,
     max_inventory: f64,
     prev_price: Option<f64>,
 }
@@ -153,45 +152,9 @@ impl<const N: usize> FastMarketMaker<N> {
         Self {
             ekf: FastEKF::new(50000.0),
             price_history: RingBuffer::new(),
-            inventory: 0.0,
             max_inventory,
             prev_price: None,
         }
-    }
-
-    #[inline(always)]
-    fn calculate_volatility_fast(&self) -> f64 {
-        if !self.price_history.is_full() {
-            return 0.0001;
-        }
-
-        let mut sum_sq = 0.0;
-        let mut count = 0;
-
-        // Unrolled at compile time for small N
-        for i in 1..N {
-            if let (Some(curr), Some(prev)) = (self.price_history.get(i), self.price_history.get(i - 1)) {
-                let ret = (curr - prev) / prev;
-                sum_sq += ret * ret;
-                count += 1;
-            }
-        }
-
-        if count > 0 {
-            (sum_sq / count as f64).sqrt().max(0.0001)
-        } else {
-            0.0001
-        }
-    }
-
-    #[inline(always)]
-    fn should_trade_buy(&self, price_deviation_bps: f64, inventory_adj: f64) -> bool {
-        price_deviation_bps < -5.0 + inventory_adj && self.inventory < self.max_inventory
-    }
-
-    #[inline(always)]
-    fn should_trade_sell(&self, price_deviation_bps: f64, inventory_adj: f64) -> bool {
-        price_deviation_bps > 5.0 + inventory_adj && self.inventory > -self.max_inventory
     }
 }
 
@@ -221,25 +184,18 @@ impl<const N: usize> Strategy for FastMarketMaker<N> {
         self.prev_price = Some(current_price);
         self.price_history.push(current_price);
 
-        // Fast deviation calculation
+        // Get current inventory from context (backtester manages this)
+        let inventory = context.position.map(|p| p.quantity).unwrap_or(0.0);
+
+        // Fast deviation calculation with inventory adjustment
         let price_deviation_bps = ((current_price - price_est) / price_est) * 10000.0;
-        let inventory_adj = self.inventory * 10.0;
+        let inventory_adj = inventory * 10.0;
 
-        // Branch prediction friendly - most common case first
-        if price_deviation_bps.abs() < 5.0 + inventory_adj.abs() {
-            // Inventory rebalancing (hot path)
-            if self.inventory > 0.5 {
-                return Signal::Sell;
-            } else if self.inventory < -0.5 {
-                return Signal::Buy;
-            }
-            return Signal::Hold;
-        }
-
-        // Trading signals (branch prediction optimized)
-        if self.should_trade_buy(price_deviation_bps, inventory_adj) {
+        // Branch prediction friendly - most common case first (Hold)
+        // Only trade on significant deviations adjusted for inventory risk
+        if price_deviation_bps < -50.0 + inventory_adj && inventory.abs() < self.max_inventory {
             Signal::Buy
-        } else if self.should_trade_sell(price_deviation_bps, inventory_adj) {
+        } else if price_deviation_bps > 50.0 + inventory_adj && inventory.abs() < self.max_inventory {
             Signal::Sell
         } else {
             Signal::Hold
@@ -250,7 +206,6 @@ impl<const N: usize> Strategy for FastMarketMaker<N> {
     fn reset(&mut self) {
         self.ekf = FastEKF::new(50000.0);
         self.price_history = RingBuffer::new();
-        self.inventory = 0.0;
         self.prev_price = None;
     }
 }

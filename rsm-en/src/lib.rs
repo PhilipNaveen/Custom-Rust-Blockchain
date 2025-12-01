@@ -11,6 +11,7 @@ pub mod market;
 pub mod market_simulation;
 pub mod orderbook_market;
 pub mod strategy;
+pub mod fast_strategy;
 pub mod backtester;
 pub mod backtester_v2;
 pub mod traders;

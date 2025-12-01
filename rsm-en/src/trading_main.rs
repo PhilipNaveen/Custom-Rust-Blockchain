@@ -1,12 +1,12 @@
 use rsm_en::orderbook_market::OrderBookMarket;
-use rsm_en::strategy::KalmanStatArb;
+use rsm_en::fast_strategy::FastMM60;
 use rsm_en::backtester_v2::{Backtester, TransactionCosts, ExecutionModel};
 use rsm_en::visualization::TradingVisualizer;
 
 fn main() {
-    println!("PhlopChain Quantitative Trading Backtester - Kalman Filter Market Making");
+    println!("PhlopChain Quantitative Trading Backtester - Ultra-Low-Latency Market Making");
     println!("{}", "=".repeat(80));
-    println!("Order Book Market Simulation with Real Bid-Ask Spreads");
+    println!("Template Metaprogramming: Compile-Time Optimized Trading Strategy");
     println!("{}", "=".repeat(80));
 
     // Create order book market with realistic depth
@@ -84,9 +84,15 @@ fn main() {
     println!("     - Skew quotes based on inventory (lean against)");
     println!("     - Profit from bid-ask spread");
     println!("     - Maintain inventory neutrality");
+    println!("   Optimization: Compile-time template metaprogramming");
+    println!("     - Const generics for zero-cost abstractions");
+    println!("     - Stack-allocated arrays (no heap allocation)");
+    println!("     - Inline hot paths for branch prediction");
+    println!("     - Cache-aligned structures");
+    println!("     - Diagonal covariance matrix (simplified)");
     
-    // Wider spread (100 bps), larger max inventory (5 units), higher skew (0.2)
-    let mut kalman_strategy = KalmanStatArb::new(60, 100.0, 5.0, 0.2);
+    // Fast market maker with compile-time optimization (lookback=60, max_inventory=5.0)
+    let mut kalman_strategy = FastMM60::new(5.0);
     let mut backtester = Backtester::new(initial_capital)
         .with_costs(costs.clone())
         .with_execution_model(ExecutionModel::Realistic)
