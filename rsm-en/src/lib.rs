@@ -6,7 +6,6 @@ pub mod transaction;
 pub mod blockchain;
 pub mod rps_mining;
 pub mod market;
-pub mod market_simulation;
 pub mod orderbook_market;
 pub mod strategy;
 pub mod fast_strategy;
