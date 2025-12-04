@@ -34,24 +34,7 @@ pub trait Strategy: Send + Sync {
     fn generate_signal(&mut self, context: &StrategyContext) -> Signal;
     fn reset(&mut self);
 }
-#[derive(Debug, Clone)]
-struct ExtendedKalmanFilter {
 
-    state: [f64; 3],
-
-    p: [[f64; 3]; 3],
-
-    q: [[f64; 3]; 3],
-
-    r: f64,
-
-    momentum_velocity: [f64; 3],
-    momentum_acceleration: [f64; 3],
-    nesterov_beta: f64,
-    nesterov_gamma: f64,
-
-    dt: f64,
-}
 
 impl ExtendedKalmanFilter {
     fn new(initial_price: f64, dt: f64) -> Self {
