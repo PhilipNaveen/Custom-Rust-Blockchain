@@ -1,4 +1,4 @@
-# Resume Bullets - Trading Strategy & Backtester
+Trading Strategy & Backtester
 
 ## Quantitative Trading System
 
@@ -25,20 +25,7 @@
 - Implemented session management system supporting concurrent trading sessions with independent strategy parameters and state isolation
 - Designed RESTful API endpoints for trade execution, session control, and market data streaming with proper CORS handling
 
-## Technical Skills Demonstrated
 
-**Languages & Frameworks:** Rust, JavaScript, HTML/CSS, Chart.js
-**Algorithms:** Extended Kalman Filtering, Nesterov Momentum, Statistical Arbitrage, Market Making
-**Systems:** Real-time data streaming, WebSocket/HTTP polling, Multi-threaded architecture
-**Finance:** Order book dynamics, Market microstructure, Risk management, Performance attribution
-**Optimization:** Template metaprogramming, Cache alignment, SIMD-friendly data layouts, Zero-copy operations
-
-## Alternative Shorter Bullets
-
-**Quantitative Trading & Market Simulation**
-- Built real-time market making strategy using Extended Kalman Filter achieving 0.30 Sharpe ratio; optimized execution latency by 96% through Rust template metaprogramming and cache-aligned data structures
-- Designed order book simulator with 1,430 heterogeneous traders and FIFO matching engine; developed live trading dashboard with sub-100ms market updates and automated strategy execution
-- Implemented comprehensive backtesting framework with performance analytics (Sharpe, drawdown, win rate) and deterministic random number generation via custom blockchain
 
 **Trading System Architecture**
 - Engineered high-frequency market making system in Rust with 115μs signal generation latency using const generics and diagonal covariance EKF
