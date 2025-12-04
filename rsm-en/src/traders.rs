@@ -96,7 +96,7 @@ impl Trader {
     }
     
 
-    pub fn determine_side(&self, price: f64, price_change: f64, random: f64) -> OrderSide {
+    pub fn determine_side(&self, _price: f64, price_change: f64, random: f64) -> OrderSide {
         match self.trader_type {
             TraderType::Retail => {
 

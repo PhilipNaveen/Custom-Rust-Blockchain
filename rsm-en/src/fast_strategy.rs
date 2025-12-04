@@ -27,32 +27,7 @@ impl<const N: usize> RingBuffer<N> {
         }
     }
 
-    #[inline(always)]
-    fn is_full(&self) -> bool {
-        self.filled
-    }
 
-    #[inline(always)]
-    fn get(&self, lookback: usize) -> Option<f64> {
-        if lookback >= N || (!self.filled && lookback >= self.index) {
-            return None;
-        }
-        let idx = if self.index >= lookback + 1 {
-            self.index - lookback - 1
-        } else {
-            N + self.index - lookback - 1
-        };
-        Some(self.data[idx])
-    }
-
-    #[inline(always)]
-    fn latest(&self) -> Option<f64> {
-        if self.index == 0 && !self.filled {
-            None
-        } else {
-            Some(self.data[(self.index + N - 1) % N])
-        }
-    }
 }
 #[repr(C, align(32))]
 #[derive(Clone, Copy)]
@@ -194,19 +169,6 @@ pub type FastMM200 = FastMarketMaker<200>;
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_ring_buffer() {
-        let mut rb: RingBuffer<4> = RingBuffer::new();
-        rb.push(1.0);
-        rb.push(2.0);
-        rb.push(3.0);
-        rb.push(4.0);
-        
-        assert!(rb.is_full());
-        assert_eq!(rb.latest(), Some(4.0));
-        assert_eq!(rb.get(0), Some(3.0));
-    }
 
     #[test]
     fn test_fast_ekf() {

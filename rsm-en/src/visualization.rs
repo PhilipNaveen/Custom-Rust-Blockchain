@@ -1,4 +1,4 @@
-use crate::backtester_v2::{BacktestResult, PortfolioSnapshot, TradeExecution};
+use crate::backtester_v2::{BacktestResult, TradeExecution};
 use crate::market::{MarketBar, OrderSide};
 use plotters::prelude::*;
 use std::error::Error;

@@ -1,6 +1,6 @@
 use crate::market::{Order, OrderBook, OrderSide, Trade, MarketBar};
 use crate::rps_mining::Move;
-use crate::traders::{TraderPopulation, Trader, TraderType};
+use crate::traders::TraderPopulation;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 #[derive(Debug, Clone, Copy, PartialEq)]
