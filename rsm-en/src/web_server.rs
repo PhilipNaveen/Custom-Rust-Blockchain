@@ -72,29 +72,19 @@ impl WebServer {
     pub async fn start_server(self) {
         let blockchain = self.blockchain.clone();
         let sessions = self.sessions.clone();
-
-        // Serve static files
         let static_files = warp::path("static")
             .and(warp::fs::dir("static"));
-
-        // Serve the main HTML page
         let index = warp::path::end()
             .map(|| {
                 warp::reply::html(include_str!("../static/index.html"))
             });
-
-        // API endpoints
         let api = warp::path("api");
-
-        // Start mining session
         let start_mining = api
             .and(warp::path("start"))
             .and(warp::post())
             .and(warp::body::json())
             .and(with_sessions(sessions.clone()))
             .and_then(start_mining_handler);
-
-        // Mine a block
         let mine_block = api
             .and(warp::path("mine"))
             .and(warp::post())
@@ -102,16 +92,12 @@ impl WebServer {
             .and(with_blockchain(blockchain.clone()))
             .and(with_sessions(sessions.clone()))
             .and_then(mine_block_handler);
-
-        // Get miner status
         let get_status = api
             .and(warp::path("status"))
             .and(warp::path::param::<String>())
             .and(warp::get())
             .and(with_sessions(sessions.clone()))
             .and_then(get_status_handler);
-
-        // Get blockchain status
         let blockchain_status = api
             .and(warp::path("blockchain"))
             .and(warp::get())
@@ -188,27 +174,25 @@ async fn mine_block_handler(
 
     let session = session.unwrap();
     
-    // Add a dummy transaction for mining
+
     let tx = Transaction::new(
         "network".to_string(),
         session.name.clone(),
-        10, // Small amount for transaction
+        10,
         session.blocks_mined + 1,
     );
 
     let mut blockchain_guard = blockchain.lock().unwrap();
     
-    // Add transaction
+
     if let Err(e) = blockchain_guard.add_transaction(tx) {
         println!("Failed to add transaction: {}", e);
-        // Continue anyway for demonstration
-    }
 
-    // Mine the block
+    }
     match blockchain_guard.mine_pending_transactions(session.name.clone()) {
         Ok(block) => {
             if let Some(ref rps_result) = block.rps_mining_result {
-                // Calculate PhlopCoin reward: n / a^2
+
                 let min_games_needed = calculate_minimum_games_needed(&blockchain_guard);
                 let actual_games = rps_result.total_games as f64;
                 let phlopcoin_earned = min_games_needed / (actual_games * actual_games);
@@ -225,7 +209,7 @@ async fn mine_block_handler(
                 session.blocks_mined += 1;
                 session.mining_history.push(mining_result.clone());
 
-                drop(blockchain_guard); // Release the lock
+                drop(blockchain_guard);
 
                 let response = MiningResponse {
                     success: true,
@@ -293,12 +277,10 @@ fn calculate_minimum_games_needed(blockchain: &Blockchain) -> f64 {
     let difficulty_info = blockchain.get_rps_difficulty_info();
     let mut min_games = 0.0;
     
-    // Calculate theoretical minimum games needed
+
     for (&required_wins, &player_count) in &difficulty_info.win_distribution {
-        // Each player needs at least `required_wins` games to win `required_wins` times
-        // In the best case scenario (always winning), they need exactly `required_wins` games
         min_games += (required_wins as f64) * (player_count as f64);
     }
     
-    min_games.max(1.0) // Ensure we don't divide by zero
+    min_games.max(1.0)
 }

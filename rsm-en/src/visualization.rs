@@ -12,8 +12,6 @@ impl TradingVisualizer {
         std::fs::create_dir_all(&output_dir).ok();
         Self { output_dir }
     }
-
-    /// Generate all visualizations for a backtest result
     pub fn generate_all(
         &self,
         result: &BacktestResult,
@@ -29,8 +27,6 @@ impl TradingVisualizer {
 
         Ok(files)
     }
-
-    /// Plot equity curve over time
     pub fn plot_equity_curve(&self, result: &BacktestResult) -> Result<String, Box<dyn Error>> {
         let filename = format!("{}/equity_curve_{}.png", self.output_dir, result.strategy_name.replace(" ", "_"));
         {
@@ -69,16 +65,12 @@ impl TradingVisualizer {
             .x_desc("Time (bars)")
             .y_desc("Portfolio Value ($)")
             .draw()?;
-
-        // Plot equity line
         chart.draw_series(LineSeries::new(
             equity_data.iter().map(|(x, y)| (*x, *y)),
             &BLUE.mix(0.8),
         ))?
         .label("Equity")
         .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
-
-        // Plot initial capital line
         chart.draw_series(LineSeries::new(
             vec![(0.0, result.initial_capital), (equity_data.len() as f64, result.initial_capital)],
             RED.mix(0.5).stroke_width(2),
@@ -96,8 +88,6 @@ impl TradingVisualizer {
         println!("Generated: {}", filename);
         Ok(filename)
     }
-
-    /// Plot price chart with trade markers
     pub fn plot_price_and_trades(
         &self,
         bars: &[MarketBar],
@@ -109,8 +99,6 @@ impl TradingVisualizer {
             root.fill(&WHITE)?;
 
         let (upper, lower) = root.split_vertically(500);
-
-        // Price chart
         let prices: Vec<(f64, f64)> = bars.iter()
             .enumerate()
             .map(|(i, bar)| (i as f64, bar.close))
@@ -142,20 +130,14 @@ impl TradingVisualizer {
             .x_desc("Time (bars)")
             .y_desc("Price ($)")
             .draw()?;
-
-        // Plot price line
         price_chart.draw_series(LineSeries::new(
             prices.iter().map(|(x, y)| (*x, *y)),
             &BLACK.mix(0.8),
         ))?;
-
-        // Create a mapping of timestamp to bar index
         let timestamp_to_index: std::collections::HashMap<u64, usize> = bars.iter()
             .enumerate()
             .map(|(i, bar)| (bar.timestamp, i))
             .collect();
-
-        // Plot buy trades as green circles
         for trade in trades.iter().filter(|t| t.side == OrderSide::Buy) {
             if let Some(&idx) = timestamp_to_index.get(&trade.timestamp) {
                 price_chart.draw_series(PointSeries::of_element(
@@ -169,8 +151,6 @@ impl TradingVisualizer {
                 ))?;
             }
         }
-
-        // Plot sell trades as red circles
         for trade in trades.iter().filter(|t| t.side == OrderSide::Sell) {
             if let Some(&idx) = timestamp_to_index.get(&trade.timestamp) {
                 price_chart.draw_series(PointSeries::of_element(
@@ -184,8 +164,6 @@ impl TradingVisualizer {
                 ))?;
             }
         }
-
-        // Volume chart
         let volumes: Vec<(f64, f64)> = bars.iter()
             .enumerate()
             .map(|(i, bar)| (i as f64, bar.volume))
@@ -208,8 +186,6 @@ impl TradingVisualizer {
             .x_desc("Time (bars)")
             .y_desc("Volume")
             .draw()?;
-
-        // Draw volume bars
         volume_chart.draw_series(
             volumes.iter().map(|(x, vol)| {
                 let mut bar = Rectangle::new([(*x - 0.4, 0.0), (*x + 0.4, *vol)], BLUE.mix(0.6).filled());
@@ -223,15 +199,11 @@ impl TradingVisualizer {
         println!("Generated: {}", filename);
         Ok(filename)
     }
-
-    /// Plot drawdown over time
     pub fn plot_drawdown(&self, result: &BacktestResult) -> Result<String, Box<dyn Error>> {
         let filename = format!("{}/drawdown_{}.png", self.output_dir, result.strategy_name.replace(" ", "_"));
         {
             let root = BitMapBackend::new(&filename, (1200, 600)).into_drawing_area();
             root.fill(&WHITE)?;
-
-        // Calculate drawdown series
         let mut max_value = result.initial_capital;
         let mut drawdowns = Vec::new();
 
@@ -268,8 +240,6 @@ impl TradingVisualizer {
             .x_desc("Time (bars)")
             .y_desc("Drawdown (%)")
             .draw()?;
-
-        // Fill area under drawdown
         chart.draw_series(
             AreaSeries::new(
                 drawdowns.iter().map(|(x, y)| (*x, *y)),
@@ -277,8 +247,6 @@ impl TradingVisualizer {
                 &RED.mix(0.3),
             )
         )?;
-
-        // Draw drawdown line
             chart.draw_series(LineSeries::new(
                 drawdowns.iter().map(|(x, y)| (*x, *y)),
                 RED.mix(0.8).stroke_width(2),
@@ -289,15 +257,11 @@ impl TradingVisualizer {
         println!("Generated: {}", filename);
         Ok(filename)
     }
-
-    /// Plot returns distribution histogram
     pub fn plot_returns_distribution(&self, result: &BacktestResult) -> Result<String, Box<dyn Error>> {
         let filename = format!("{}/returns_dist_{}.png", self.output_dir, result.strategy_name.replace(" ", "_"));
         {
             let root = BitMapBackend::new(&filename, (1000, 600)).into_drawing_area();
             root.fill(&WHITE)?;
-
-        // Calculate returns
         let returns: Vec<f64> = result.portfolio_history.windows(2)
             .map(|w| {
                 if w[0].total_value == 0.0 {
@@ -312,8 +276,6 @@ impl TradingVisualizer {
             drop(root);
             return Ok(filename);
         }
-
-        // Create histogram bins
         let min_return = returns.iter().fold(f64::INFINITY, |a, &b| a.min(b));
         let max_return = returns.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
         let num_bins = 50;
@@ -346,8 +308,6 @@ impl TradingVisualizer {
             .x_desc("Return (%)")
             .y_desc("Frequency")
             .draw()?;
-
-        // Draw histogram bars
         chart.draw_series(
             bins.iter().enumerate().map(|(i, &count)| {
                 let x = min_return + (i as f64 * bin_width);
@@ -357,8 +317,6 @@ impl TradingVisualizer {
                 )
             }),
         )?;
-
-        // Draw zero line
             chart.draw_series(LineSeries::new(
                 vec![(0.0, 0.0), (0.0, max_count as f64)],
                 BLACK.stroke_width(2),
@@ -369,8 +327,6 @@ impl TradingVisualizer {
         println!("Generated: {}", filename);
         Ok(filename)
     }
-
-    /// Plot trade analysis
     pub fn plot_trade_analysis(&self, trades: &[TradeExecution]) -> Result<String, Box<dyn Error>> {
         let filename = format!("{}/trade_analysis.png", self.output_dir);
         {
@@ -378,8 +334,6 @@ impl TradingVisualizer {
             root.fill(&WHITE)?;
 
         let (left, right) = root.split_horizontally(700);
-
-        // Calculate PnL per trade
         let mut trade_pnls = Vec::new();
         
         if trades.len() < 2 {
@@ -418,8 +372,6 @@ impl TradingVisualizer {
             drop(root);
             return Ok(filename);
         }
-
-        // Cumulative PnL chart
         let mut cumulative_pnl = 0.0;
         let cumulative: Vec<(f64, f64)> = trade_pnls.iter()
             .enumerate()
@@ -453,14 +405,10 @@ impl TradingVisualizer {
             cumulative.iter().map(|(x, y)| (*x, *y)),
             BLUE.mix(0.8).stroke_width(2),
         ))?;
-
-        // Zero line
         cum_chart.draw_series(LineSeries::new(
             vec![(0.0, 0.0), (cumulative.len() as f64, 0.0)],
             &BLACK.mix(0.5),
         ))?;
-
-        // Individual trade PnL bars
         let max_pnl = trade_pnls.iter().fold(0.0_f64, |a, &b| a.max(b.abs()));
 
         let mut pnl_chart = ChartBuilder::on(&right)
@@ -478,8 +426,6 @@ impl TradingVisualizer {
             .x_desc("Trade Number")
             .y_desc("PnL ($)")
             .draw()?;
-
-        // Draw PnL bars (green for profit, red for loss)
         pnl_chart.draw_series(
             trade_pnls.iter().enumerate().map(|(i, &pnl)| {
                 let color = if pnl >= 0.0 { GREEN.mix(0.7) } else { RED.mix(0.7) };
@@ -489,8 +435,6 @@ impl TradingVisualizer {
                 )
             }),
         )?;
-
-        // Zero line
         pnl_chart.draw_series(LineSeries::new(
             vec![(0.0, 0.0), (trade_pnls.len() as f64, 0.0)],
                 &BLACK,

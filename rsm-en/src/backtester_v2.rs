@@ -2,16 +2,12 @@ use crate::market::{MarketBar, OrderSide};
 use crate::strategy::{Position, Signal, Strategy, StrategyContext};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-/// Execution model for realistic fills
 #[derive(Debug, Clone)]
 pub enum ExecutionModel {
-    Naive,              // Fill at bar close
-    Realistic,          // Model slippage and market impact
-    Conservative,       // Pessimistic fills
+    Naive,
+    Realistic,
+    Conservative,
 }
-
-/// Slippage and transaction costs
 #[derive(Debug, Clone)]
 pub struct TransactionCosts {
     pub commission_rate: f64,
@@ -22,14 +18,12 @@ pub struct TransactionCosts {
 impl Default for TransactionCosts {
     fn default() -> Self {
         Self {
-            commission_rate: 0.001,      // 0.1%
-            slippage_bps: 5.0,            // 5 basis points
-            market_impact_factor: 0.1,    // sqrt model
+            commission_rate: 0.001,
+            slippage_bps: 5.0,
+            market_impact_factor: 0.1,
         }
     }
 }
-
-/// Trade execution record
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeExecution {
     pub timestamp: u64,
@@ -42,8 +36,6 @@ pub struct TradeExecution {
     pub slippage: f64,
     pub market_impact: f64,
 }
-
-/// Portfolio state at a point in time
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioSnapshot {
     pub timestamp: u64,
@@ -53,8 +45,6 @@ pub struct PortfolioSnapshot {
     pub positions: Vec<Position>,
     pub leverage: f64,
 }
-
-/// Performance metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceMetrics {
     pub total_return: f64,
@@ -78,8 +68,6 @@ pub struct PerformanceMetrics {
     pub avg_holding_period: f64,
     pub return_volatility: f64,
 }
-
-/// Enhanced backtesting engine
 pub struct Backtester {
     pub initial_capital: f64,
     pub cash: f64,
@@ -89,7 +77,7 @@ pub struct Backtester {
     pub costs: TransactionCosts,
     pub execution_model: ExecutionModel,
     
-    // Advanced features
+
     pub max_position_size: f64,
     pub max_leverage: f64,
     pub use_stops: bool,
@@ -129,16 +117,14 @@ impl Backtester {
         self.use_stops = true;
         self
     }
-
-    /// Calculate realistic fill price with slippage and market impact
     fn calculate_fill_price(&self, intended_price: f64, side: OrderSide, quantity: f64, volume: f64) -> (f64, f64, f64) {
         match self.execution_model {
             ExecutionModel::Naive => (intended_price, 0.0, 0.0),
             ExecutionModel::Realistic | ExecutionModel::Conservative => {
-                // Slippage based on basis points
+
                 let slippage_amount = intended_price * (self.costs.slippage_bps / 10000.0);
                 
-                // Market impact: sqrt model based on order size relative to volume
+
                 let participation_rate = if volume > 0.0 {
                     (quantity / volume).min(1.0)
                 } else {
@@ -154,7 +140,7 @@ impl Backtester {
                     OrderSide::Sell => intended_price - total_impact,
                 };
                 
-                // Conservative model adds extra pessimism
+
                 let adjustment = if matches!(self.execution_model, ExecutionModel::Conservative) {
                     1.5
                 } else {
@@ -189,8 +175,6 @@ impl Backtester {
                 }
 
                 self.cash -= total_cost;
-
-                // Update or create position
                 self.positions.entry(symbol.clone())
                     .and_modify(|pos| {
                         let total_quantity = pos.quantity + quantity;
@@ -290,7 +274,7 @@ impl Backtester {
         });
     }
     
-    /// Check if stop loss hit
+
     fn check_stop_loss(&self, position: &Position, current_price: f64) -> bool {
         if !self.use_stops {
             return false;
@@ -313,7 +297,7 @@ impl Backtester {
         for (idx, bar) in bars.iter().enumerate() {
             let position = self.positions.get(&symbol);
             
-            // Check stop loss
+
             if let Some(pos) = position {
                 if self.check_stop_loss(pos, bar.close) {
                     let _ = self.execute_trade(
@@ -372,8 +356,6 @@ impl Backtester {
             prices.insert(symbol.clone(), bar.close);
             self.record_snapshot(bar.timestamp, &prices);
         }
-
-        // Close any remaining positions
         if let Some(last_bar) = bars.last() {
             let symbol = last_bar.symbol.clone();
             if let Some(position) = self.positions.get(&symbol).cloned() {
@@ -410,7 +392,7 @@ impl Backtester {
 
         let total_return = (final_value - self.initial_capital) / self.initial_capital;
         
-        // Calculate returns series
+
         let returns: Vec<f64> = self.portfolio_history.windows(2)
             .map(|w| {
                 if w[0].total_value == 0.0 {
@@ -420,17 +402,15 @@ impl Backtester {
                 }
             })
             .collect();
-
-        // Sharpe ratio
         let sharpe_ratio = calculate_sharpe_ratio(&returns);
         
-        // Sortino ratio (uses only downside deviation)
+
         let sortino_ratio = calculate_sortino_ratio(&returns);
         
-        // Maximum drawdown
+
         let (max_drawdown, avg_drawdown) = calculate_drawdowns(&self.portfolio_history);
         
-        // Calmar ratio
+
         let annualized_return = total_return * (252.0 / num_bars as f64);
         let calmar_ratio = if max_drawdown > 0.0 {
             annualized_return / max_drawdown
@@ -438,7 +418,7 @@ impl Backtester {
             0.0
         };
         
-        // Trade statistics
+
         let (win_rate, profit_factor, avg_win, avg_loss, largest_win, largest_loss, 
              winning_trades, losing_trades) = calculate_trade_stats(&self.trade_history);
         
@@ -447,16 +427,16 @@ impl Backtester {
             .map(|t| t.slippage + t.market_impact)
             .sum();
         
-        // Holding period (if we have complete trades)
+
         let avg_holding_period = calculate_avg_holding_period(&self.trade_history);
         
-        // Return volatility
+
         let return_volatility = if returns.len() > 1 {
             let mean = returns.iter().sum::<f64>() / returns.len() as f64;
             let variance: f64 = returns.iter()
                 .map(|r| (r - mean).powi(2))
                 .sum::<f64>() / returns.len() as f64;
-            variance.sqrt() * (252.0_f64).sqrt() // Annualized
+            variance.sqrt() * (252.0_f64).sqrt()
         } else {
             0.0
         };
@@ -485,8 +465,6 @@ impl Backtester {
         }
     }
 }
-
-/// Backtest result with comprehensive metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BacktestResult {
     pub strategy_name: String,
@@ -572,7 +550,7 @@ fn calculate_sortino_ratio(returns: &[f64]) -> f64 {
 
     let mean_return: f64 = returns.iter().sum::<f64>() / returns.len() as f64;
     
-    // Only use negative returns for downside deviation
+
     let downside_returns: Vec<f64> = returns.iter()
         .filter(|&&r| r < 0.0)
         .copied()

@@ -32,18 +32,18 @@ impl Blockchain {
             rps_miner,
         };
         
-        // Create genesis block
+
         blockchain.create_genesis_block();
         blockchain
     }
 
     fn create_genesis_block(&mut self) {
         let mut genesis = Block::genesis();
-        // Genesis block doesn't need RPS mining, just set a simple hash
+
         genesis.hash = genesis.calculate_hash();
         self.chain.push(genesis);
         
-        // Initialize some accounts with genesis balances
+
         self.balances.set_balance(&"genesis".to_string(), 1_000_000);
         self.balances.set_balance(&"alice".to_string(), 1000);
         self.balances.set_balance(&"bob".to_string(), 500);
@@ -57,14 +57,10 @@ impl Blockchain {
         if !transaction.is_valid() {
             return Err("Invalid transaction".to_string());
         }
-
-        // Check if sender has sufficient balance
         let sender_balance = self.balances.get_balance(&transaction.from);
         if sender_balance < transaction.amount {
             return Err("Insufficient balance".to_string());
         }
-
-        // Check nonce
         let expected_nonce = self.system.get_nonce(&transaction.from);
         if transaction.nonce != expected_nonce + 1 {
             return Err("Invalid nonce".to_string());
@@ -75,7 +71,7 @@ impl Blockchain {
     }
 
     pub fn mine_pending_transactions(&mut self, mining_reward_address: String) -> Result<Block, String> {
-        // Always add a mining reward transaction, even if no other pending transactions
+
         let reward_tx = Transaction::new(
             "network".to_string(),
             mining_reward_address.clone(),
@@ -85,10 +81,8 @@ impl Blockchain {
 
         let mut transactions = Vec::new();
         transactions.push(reward_tx);
-
-        // Process any existing pending transactions
         while let Some(tx) = self.pending_transactions.pop_front() {
-            // Execute the transaction
+
             match self.balances.transfer(
                 tx.from.clone(),
                 tx.to.clone(),
@@ -100,11 +94,9 @@ impl Blockchain {
                 }
                 Err(e) => {
                     println!("Transaction failed: {}", e);
-                    // Skip invalid transaction
+
                 }
             }
-
-            // Limit transactions per block
             if transactions.len() >= 100 {
                 break;
             }
@@ -116,18 +108,14 @@ impl Blockchain {
             transactions,
             previous_hash
         );
-
-        // Use RPS mining instead of traditional proof-of-work
         match new_block.mine_block_rps(&mut self.rps_miner) {
             Ok(_) => {
-                // Add mining reward to the miner's balance
+
                 let current_balance = self.balances.get_balance(&mining_reward_address);
                 self.balances.set_balance(
                     &mining_reward_address,
                     current_balance + self.mining_reward
                 );
-
-                // Increment block number
                 self.system.inc_block_number(&mining_reward_address);
 
                 self.chain.push(new_block.clone());
@@ -151,15 +139,13 @@ impl Blockchain {
             if !current_block.is_valid(Some(previous_block)) {
                 return false;
             }
-
-            // Check RPS mining proof instead of traditional proof of work
             if let Some(ref rps_result) = current_block.rps_mining_result {
                 if !rps_result.success {
                     return false;
                 }
-                // Additional validation could be added here to verify RPS mining
+
             } else if i > 0 {
-                // Non-genesis blocks should have RPS mining results
+
                 return false;
             }
         }
@@ -246,7 +232,7 @@ impl Blockchain {
         
         let time_diff = (latest_block.timestamp - prev_block.timestamp) as f64;
         
-        // For RPS mining, calculate "hash rate" based on games per second
+
         if let Some(ref rps_result) = latest_block.rps_mining_result {
             if time_diff > 0.0 {
                 rps_result.total_games as f64 / time_diff
@@ -264,7 +250,7 @@ impl Blockchain {
 
     pub fn get_total_rps_games(&self) -> u64 {
         self.chain.iter()
-            .skip(1) // Skip genesis block
+            .skip(1)
             .map(|block| {
                 if let Some(ref rps_result) = block.rps_mining_result {
                     rps_result.total_games
@@ -279,7 +265,7 @@ impl Blockchain {
     pub fn create_state_merkle_tree(&self) -> FastMerkleTree {
         let mut tree = FastMerkleTree::new();
         
-        // Add all account balances to the tree
+
         for (account, balance) in &self.balances.balances {
             let state_data = format!("{}:{}", account, balance);
             tree.add_leaf(Hash::from_string(&state_data));
@@ -309,7 +295,7 @@ mod tests {
     #[test]
     fn test_blockchain_creation() {
         let blockchain = Blockchain::new();
-        assert_eq!(blockchain.chain.len(), 1); // Genesis block
+        assert_eq!(blockchain.chain.len(), 1);
         assert!(blockchain.is_chain_valid());
     }
 

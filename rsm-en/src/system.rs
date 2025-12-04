@@ -27,7 +27,7 @@ impl Pallet{
 
     pub fn inc_block_number(&mut self, _who: &String){
 
-        self.block_number = self.block_number.checked_add(1).unwrap(); // Fails only @ blockchain overflow
+        self.block_number = self.block_number.checked_add(1).unwrap();
     }
 
     pub fn inc_nonce(&mut self, who: &String){

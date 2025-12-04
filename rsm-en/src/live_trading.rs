@@ -1,5 +1,3 @@
-/// Real-time trading WebSocket server
-/// Streams live market data and strategy updates to web clients
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -54,7 +52,7 @@ pub struct MarketUpdate {
     pub best_bid: f64,
     pub best_ask: f64,
     pub mid_price: f64,
-    pub latency: u128, // microseconds
+    pub latency: u128,
     pub stats: TradingStats,
     pub equity_history: Vec<f64>,
     pub price_history: Vec<f64>,
@@ -101,8 +99,6 @@ impl TradingSession {
         } else {
             0.0
         };
-
-        // Calculate Sharpe ratio from returns
         let returns: Vec<f64> = self.equity_curve
             .windows(2)
             .map(|w| (w[1] - w[0]) / w[0])
@@ -116,15 +112,13 @@ impl TradingSession {
                 .sqrt();
             
             if std_dev > 0.0 {
-                mean_return / std_dev * (252.0_f64).sqrt() // Annualized
+                mean_return / std_dev * (252.0_f64).sqrt()
             } else {
                 0.0
             }
         } else {
             0.0
         };
-
-        // Max drawdown
         let max_drawdown = self.drawdown_history.iter()
             .map(|d| d.abs())
             .max_by(|a, b| a.partial_cmp(b).unwrap())
@@ -142,8 +136,8 @@ impl TradingSession {
     }
 
     pub fn execute_trade(&mut self, side: OrderSide, quantity: f64, price: f64, bar: usize) -> TradeRecord {
-        let commission = 0.001; // 0.1%
-        let slippage = 0.0005; // 5 bps
+        let commission = 0.001;
+        let slippage = 0.0005;
         
         let mut pnl = 0.0;
         
@@ -153,7 +147,7 @@ impl TradingSession {
                 self.current_capital -= cost;
                 
                 if self.position < 0.0 {
-                    // Covering short
+
                     let entry = self.position_entry_price.unwrap_or(price);
                     pnl = self.position.abs() * (entry - price);
                 }
@@ -166,7 +160,7 @@ impl TradingSession {
                 self.current_capital += proceeds;
                 
                 if self.position > 0.0 {
-                    // Closing long
+
                     let entry = self.position_entry_price.unwrap_or(price);
                     pnl = self.position.abs() * (price - entry);
                 }
@@ -175,14 +169,12 @@ impl TradingSession {
                 self.position_entry_price = Some(price);
             }
         }
-
-        // Update position value in capital
         let position_value = self.position * price;
         let total_value = self.current_capital + position_value;
         
         self.equity_curve.push(total_value);
         
-        // Calculate drawdown
+
         let peak = self.equity_curve.iter()
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap_or(&self.initial_capital);
@@ -277,7 +269,7 @@ impl LiveTradingEngine {
         let sessions_clone = Arc::clone(&self.sessions);
         
         thread::spawn(move || {
-            // Create market simulation
+
             let symbol = "BTC/USD".to_string();
             let initial_price = 50000.0;
             let mut market = OrderBookMarket::new(symbol, initial_price);
@@ -286,12 +278,12 @@ impl LiveTradingEngine {
             let mut ekf_history = Vec::new();
             let mut bar_count = 0;
             
-            // Initialize market depth
+
             market.initialize_depth(10, 10.0, 5.0);
             
-            // Continuous market generation loop
+
             loop {
-                // Check if still active
+
                 let is_active = {
                     let sessions = sessions_clone.lock().unwrap();
                     sessions.get(&session_id)
@@ -305,36 +297,36 @@ impl LiveTradingEngine {
 
                 let start_time = Instant::now();
                 
-                // Step the market simulation to generate price movement
+
                 market.step();
                 
-                // Get current price after market step
+
                 let current_price = market.get_mid_price();
                 
                 let latency = start_time.elapsed().as_micros();
                 
-                // Get EKF estimate (simplified - just track price smoothly)
+
                 let ekf_estimate = if ekf_history.is_empty() {
                     current_price
                 } else {
                     let prev = ekf_history.last().unwrap();
-                    prev * 0.95 + current_price * 0.05 // Smooth estimate
+                    prev * 0.95 + current_price * 0.05
                 };
                 
                 price_history.push(current_price);
                 ekf_history.push(ekf_estimate);
                 
-                // Keep only last 200 points for chart performance
+
                 if price_history.len() > 200 {
                     price_history.remove(0);
                     ekf_history.remove(0);
                 }
                 
-                // Get current session state and send update
+
                 let (session, new_trade) = {
                     let sessions = sessions_clone.lock().unwrap();
                     let session = sessions.get(&session_id).cloned();
-                    (session, None) // Trades are now manual
+                    (session, None)
                 };
                 
                 if let Some(session) = session {
@@ -360,7 +352,7 @@ impl LiveTradingEngine {
                 
                 bar_count += 1;
                 
-                // Update every 200ms for more responsive UI
+
                 thread::sleep(Duration::from_millis(200));
             }
         });
@@ -378,8 +370,6 @@ impl LiveTradingEngine {
         }
     }
 }
-
-// UUID placeholder (simplified)
 mod uuid {
     use std::time::SystemTime;
     

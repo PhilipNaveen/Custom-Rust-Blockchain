@@ -8,8 +8,6 @@ fn main() {
     println!("{}", "=".repeat(80));
     println!("Template Metaprogramming: Compile-Time Optimized Trading Strategy");
     println!("{}", "=".repeat(80));
-
-    // Create order book market with realistic depth
     let symbol = "BTC/USD".to_string();
     let initial_price = 50000.0;
     let mut market = OrderBookMarket::new(symbol, initial_price);
@@ -21,7 +19,7 @@ fn main() {
     println!("   Heterogeneous trader population (1430 traders)");
     println!("   Real price formation from order matching");
     
-    let num_bars = 10000; // Much longer simulation
+    let num_bars = 10000;
     let bars = market.simulate_session(num_bars);
 
     println!("\nGenerated {} bars of market data", bars.len());
@@ -36,15 +34,11 @@ fn main() {
     println!("   Total Trades:  {}", bars.iter().filter(|b| b.volume > 0.0).count());
     println!("   Final Spread:  {:.2} bps", market.get_spread_bps());
     
-    // Show trader statistics
+
     market.print_trader_stats();
-
-    // Run latency benchmark
     use rsm_en::benchmark::StrategyBenchmark;
-    let benchmark = StrategyBenchmark::new(10); // 10 iterations through all bars
+    let benchmark = StrategyBenchmark::new(10);
     benchmark.benchmark_hot_path(&bars);
-
-    // Backtest parameters
     let initial_capital = 100000.0;
     let position_size = 0.95;
 
@@ -57,15 +51,11 @@ fn main() {
     println!("   Market Impact:   Square root model");
     println!("   Position Size:   {:.0}%", position_size * 100.0);
     println!("   Stop Loss:       5%");
-
-    // Configure realistic transaction costs
     let costs = TransactionCosts {
         commission_rate: 0.001,
         slippage_bps: 5.0,
         market_impact_factor: 0.1,
     };
-
-    // Extended Kalman Filter Market Making Strategy
     println!("\nStrategy Parameters:");
     println!("   Algorithm:          EKF Market Maker");
     println!("   State Model:        Price + Velocity (2D observations)");
@@ -96,7 +86,7 @@ fn main() {
     println!("     - Cache-aligned structures");
     println!("     - Diagonal covariance matrix (simplified)");
     
-    // Fast market maker with compile-time optimization (lookback=60, max_inventory=5.0)
+
     let mut kalman_strategy = FastMM60::new(5.0);
     let mut backtester = Backtester::new(initial_capital)
         .with_costs(costs.clone())
@@ -110,8 +100,6 @@ fn main() {
     println!("BACKTEST RESULTS");
     println!("{}", "=".repeat(80));
     result.print_summary();
-
-    // Show sample trades
     println!("\nSample Trades (first 10):");
     println!("{:<5} {:<10} {:<10} {:<12} {:<12} {:<12}", 
         "No.", "Side", "Quantity", "Fill Price", "Intended", "Slippage");
@@ -127,8 +115,6 @@ fn main() {
             trade.slippage + trade.market_impact,
         );
     }
-
-    // Generate visualizations
     println!("\n{}", "=".repeat(80));
     println!("GENERATING VISUALIZATIONS");
     println!("{}", "=".repeat(80));
@@ -148,8 +134,6 @@ fn main() {
             println!("   Error generating charts: {}", e);
         }
     }
-
-    // Demonstrate the blockchain connection
     println!("\n{}", "=".repeat(80));
     println!("BLOCKCHAIN INTEGRATION");
     println!("{}", "=".repeat(80));

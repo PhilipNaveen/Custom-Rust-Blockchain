@@ -1,12 +1,10 @@
-// Core blockchain modules
+
 pub mod balances;
 pub mod system;
 pub mod merkle;
 pub mod transaction;
 pub mod blockchain;
 pub mod rps_mining;
-
-// Trading/market modules
 pub mod market;
 pub mod market_simulation;
 pub mod orderbook_market;

@@ -3,8 +3,6 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::thread;
-
-// Include the blockchain modules
 mod balances;
 mod system;
 mod merkle;
@@ -32,7 +30,7 @@ struct MiningResult {
     games_played: u64,
     rounds: u32,
     timestamp: String,
-    block_hash: String, // Add block hash
+    block_hash: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,19 +84,19 @@ fn main() {
 }
 
 fn handle_connection(mut stream: TcpStream, blockchain: SharedBlockchain, sessions: SharedSessions) {
-    let mut buffer = [0; 4096]; // Increased buffer size
+    let mut buffer = [0; 4096];
     let bytes_read = stream.read(&mut buffer).unwrap_or(0);
     
     let request = String::from_utf8_lossy(&buffer[..bytes_read]);
     let request_line = request.lines().next().unwrap_or("");
     
-    println!("Received request: {}", request_line); // Debug log
+    println!("Received request: {}", request_line);
     
     let (status_line, contents) = if request_line.starts_with("GET / ") {
         println!("📄 Serving index page...");
         ("HTTP/1.1 200 OK".to_string(), get_index_html())
     } else if request_line.starts_with("OPTIONS") {
-        // Handle CORS preflight requests
+
         ("HTTP/1.1 200 OK".to_string(), String::new())
     } else if request_line.starts_with("POST /api/start") {
         handle_start_mining(&request, sessions)
@@ -129,7 +127,7 @@ fn handle_connection(mut stream: TcpStream, blockchain: SharedBlockchain, sessio
 fn extract_body(request: &str) -> String {
     if let Some(body_start) = request.find("\r\n\r\n") {
         let body = &request[body_start + 4..];
-        // Clean up the body by removing null bytes and extra characters
+
         body.trim_matches('\0').trim().to_string()
     } else {
         String::new()
@@ -147,7 +145,7 @@ fn extract_session_id(request_line: &str) -> String {
 
 fn handle_start_mining(request: &str, sessions: SharedSessions) -> (String, String) {
     let body = extract_body(request);
-    println!("Received start mining request body: '{}'", body); // Debug log
+    println!("Received start mining request body: '{}'", body);
     
     if let Ok(req) = serde_json::from_str::<StartMiningRequest>(&body) {
         let session_id = generate_uuid();
@@ -177,28 +175,28 @@ fn handle_start_mining(request: &str, sessions: SharedSessions) -> (String, Stri
 
 fn handle_mine_block(request: &str, blockchain: SharedBlockchain, sessions: SharedSessions) -> (String, String) {
     let body = extract_body(request);
-    println!("Received mine block request body: '{}'", body); // Debug log
+    println!("Received mine block request body: '{}'", body);
     
     if let Ok(req) = serde_json::from_str::<MineBlockRequest>(&body) {
         let mut sessions_guard = sessions.lock().unwrap();
         if let Some(session) = sessions_guard.get_mut(&req.session_id) {
-            // Add a few dummy transactions to make mining more interesting
+
             let tx1 = Transaction::new(
                 "alice".to_string(),
                 session.name.clone(),
-                5, // Small amount
+                5,
                 1,
             );
             let tx2 = Transaction::new(
                 session.name.clone(),
                 "bob".to_string(),
-                3, // Small amount
+                3,
                 session.blocks_mined + 1,
             );
             
             let mut blockchain_guard = blockchain.lock().unwrap();
             
-            // Add transactions (ignore errors for demo purposes)
+
             let _ = blockchain_guard.add_transaction(tx1);
             let _ = blockchain_guard.add_transaction(tx2);
             
@@ -215,7 +213,7 @@ fn handle_mine_block(request: &str, blockchain: SharedBlockchain, sessions: Shar
                             games_played: rps_result.total_games,
                             rounds: rps_result.rounds,
                             timestamp: format_timestamp(std::time::SystemTime::now()),
-                            block_hash: format!("{}", block.hash), // Convert hash to string
+                            block_hash: format!("{}", block.hash),
                         };
                         
                         session.total_phlopcoin += phlopcoin_earned;
@@ -275,17 +273,17 @@ fn handle_blockchain_status(blockchain: SharedBlockchain, sessions: SharedSessio
 fn handle_mining_history(_blockchain: SharedBlockchain, sessions: SharedSessions) -> (String, String) {
     let sessions_guard = sessions.lock().unwrap();
     
-    // Collect all mining history from all sessions
+
     let mut all_mining_history: Vec<MiningResult> = Vec::new();
     
     for session in sessions_guard.values() {
         all_mining_history.extend(session.mining_history.clone());
     }
     
-    // Sort by block number (newest first)
+
     all_mining_history.sort_by(|a, b| b.block_number.cmp(&a.block_number));
     
-    // Take last 20 blocks for charts
+
     let recent_history: Vec<MiningResult> = all_mining_history.into_iter().take(20).collect();
     
     ("HTTP/1.1 200 OK".to_string(), serde_json::to_string(&recent_history).unwrap())
@@ -322,7 +320,7 @@ fn format_timestamp(time: std::time::SystemTime) -> String {
     let duration = time.duration_since(UNIX_EPOCH).unwrap();
     let secs = duration.as_secs();
     
-    // Simple timestamp formatting
+
     format!("{} seconds since epoch", secs)
 }
 

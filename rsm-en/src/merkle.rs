@@ -78,7 +78,7 @@ impl FastMerkleTree {
 
     pub fn add_leaf(&mut self, leaf: Hash) {
         self.leaves.push(leaf);
-        self.root = None; // Invalidate root when adding new leaf
+        self.root = None;
     }
 
     pub fn build(&mut self) {
@@ -89,17 +89,15 @@ impl FastMerkleTree {
 
         self.nodes.clear();
         let mut current_level = self.leaves.clone();
-
-        // Build tree bottom-up
         while current_level.len() > 1 {
             let mut next_level = Vec::new();
             
-            // Process pairs of nodes
+
             for chunk in current_level.chunks(2) {
                 let combined = if chunk.len() == 2 {
                     chunk[0].combine(&chunk[1])
                 } else {
-                    // For odd number of nodes, duplicate the last one
+
                     chunk[0].combine(&chunk[0])
                 };
                 next_level.push(combined);
@@ -127,8 +125,6 @@ impl FastMerkleTree {
 
         let mut proof = Vec::new();
         let mut current_index = index;
-
-        // Traverse from leaf to root, collecting sibling hashes
         for level in &self.nodes {
             if current_index >= level.len() {
                 break;
@@ -143,7 +139,7 @@ impl FastMerkleTree {
             if sibling_index < level.len() {
                 proof.push(level[sibling_index].clone());
             } else if current_index < level.len() {
-                // For odd number of nodes, sibling is the node itself
+
                 proof.push(level[current_index].clone());
             }
 

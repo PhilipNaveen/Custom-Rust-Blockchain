@@ -2,15 +2,11 @@ use crate::merkle::Hash;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};
-
-/// Represents the side of an order
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OrderSide {
     Buy,
     Sell,
 }
-
-/// Represents a limit order in the market
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Order {
     pub id: u64,
@@ -74,8 +70,6 @@ impl Order {
         self.filled >= self.quantity
     }
 }
-
-/// Represents a trade execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trade {
     pub id: u64,
@@ -139,8 +133,6 @@ impl Trade {
         Hash::from_string(&data)
     }
 }
-
-/// Price level in the order book
 #[derive(Debug, Clone)]
 pub struct PriceLevel {
     pub price: f64,
@@ -167,12 +159,10 @@ impl PriceLevel {
         self.total_quantity = self.orders.iter().map(|o| o.remaining()).sum();
     }
 }
-
-/// Order book for a single symbol
 #[derive(Debug, Clone)]
 pub struct OrderBook {
     pub symbol: String,
-    pub bids: BTreeMap<i64, PriceLevel>, // Negative for descending sort
+    pub bids: BTreeMap<i64, PriceLevel>,
     pub asks: BTreeMap<i64, PriceLevel>,
     pub last_price: Option<f64>,
     pub trades: Vec<Trade>,
@@ -198,7 +188,7 @@ impl OrderBook {
 
         match order.side {
             OrderSide::Buy => {
-                // Try to match with asks
+
                 while order.remaining() > 0.0 {
                     let best_ask = self.asks.iter_mut().next();
                     if let Some((_, level)) = best_ask {
@@ -238,8 +228,6 @@ impl OrderBook {
                         break;
                     }
                 }
-
-                // Add remaining to order book
                 if order.remaining() > 0.0 {
                     let price_key = -Self::price_to_key(order.price);
                     self.bids
@@ -249,7 +237,7 @@ impl OrderBook {
                 }
             }
             OrderSide::Sell => {
-                // Try to match with bids
+
                 while order.remaining() > 0.0 {
                     let best_bid = self.bids.iter_mut().next();
                     if let Some((_, level)) = best_bid {
@@ -289,8 +277,6 @@ impl OrderBook {
                         break;
                     }
                 }
-
-                // Add remaining to order book
                 if order.remaining() > 0.0 {
                     let price_key = Self::price_to_key(order.price);
                     self.asks
@@ -342,8 +328,6 @@ impl OrderBook {
             .collect()
     }
 }
-
-/// Market data point (OHLCV)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketBar {
     pub timestamp: u64,

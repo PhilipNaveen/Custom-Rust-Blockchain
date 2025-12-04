@@ -1,5 +1,3 @@
-/// Simple HTTP server for live trading dashboard
-/// Uses long-polling for real-time updates
 
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
@@ -69,13 +67,11 @@ fn handle_request(
 ) {
     let url = request.url().to_string();
     let method = request.method().clone();
-
-    // CORS headers
     let cors_header = Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]).unwrap();
     let content_type = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
 
     match (method, url.as_str()) {
-        // Serve static files
+
         (Method::Get, "/") | (Method::Get, "/index.html") => {
             serve_file(request, "static/index.html");
             return;
@@ -85,7 +81,7 @@ fn handle_request(
             return;
         }
         
-        // API: Start trading
+
         (Method::Post, "/api/trading/start") => {
             let mut content = String::new();
             request.as_reader().read_to_string(&mut content).unwrap();
@@ -102,7 +98,7 @@ fn handle_request(
                 let session_id = engine.create_session(req.initial_capital, params);
                 engine.start_session(&session_id).unwrap();
                 
-                // Start update collection thread
+
                 let engine_clone = Arc::clone(&engine);
                 let updates_clone = Arc::clone(&updates);
                 let session_id_clone = session_id.clone();
@@ -125,7 +121,7 @@ fn handle_request(
             }
         }
         
-        // API: Stop trading
+
         (Method::Post, "/api/trading/stop") => {
             let mut content = String::new();
             request.as_reader().read_to_string(&mut content).unwrap();
@@ -152,13 +148,13 @@ fn handle_request(
             }
         }
         
-        // API: Poll for updates (long-polling)
+
         (Method::Post, "/api/trading/poll") => {
             let mut content = String::new();
             request.as_reader().read_to_string(&mut content).unwrap();
             
             if let Ok(req) = serde_json::from_str::<PollRequest>(&content) {
-                // Get available updates
+
                 let mut update_list = updates.lock().unwrap();
                 let session_updates = update_list.entry(req.session_id.clone()).or_insert_with(Vec::new);
                 
@@ -169,7 +165,7 @@ fn handle_request(
                         .with_header(content_type);
                     let _ = request.respond(response);
                 } else {
-                    // No updates available, send empty
+
                     let response = Response::from_string("{}")
                         .with_header(cors_header)
                         .with_header(content_type);
@@ -178,7 +174,7 @@ fn handle_request(
             }
         }
         
-        // API: Execute manual trade
+
         (Method::Post, "/api/trading/trade") => {
             let mut content = String::new();
             request.as_reader().read_to_string(&mut content).unwrap();
@@ -252,7 +248,7 @@ fn collect_updates(
         let session_updates = update_list.entry(session_id.clone()).or_insert_with(|| Vec::new());
         session_updates.push(update);
         
-        // Keep only last 10 updates
+
         if session_updates.len() > 10 {
             session_updates.remove(0);
         }

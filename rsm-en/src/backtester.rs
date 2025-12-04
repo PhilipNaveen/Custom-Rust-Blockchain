@@ -2,8 +2,6 @@ use crate::market::{MarketBar, OrderSide};
 use crate::strategy::{Position, Signal, Strategy, StrategyContext};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-/// Trade execution record
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeExecution {
     pub timestamp: u64,
@@ -13,8 +11,6 @@ pub struct TradeExecution {
     pub quantity: f64,
     pub commission: f64,
 }
-
-/// Portfolio state at a point in time
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortfolioSnapshot {
     pub timestamp: u64,
@@ -23,8 +19,6 @@ pub struct PortfolioSnapshot {
     pub total_value: f64,
     pub positions: Vec<Position>,
 }
-
-/// Backtesting engine
 pub struct Backtester {
     pub initial_capital: f64,
     pub cash: f64,
@@ -58,8 +52,6 @@ impl Backtester {
                 }
 
                 self.cash -= total_cost;
-
-                // Update or create position
                 self.positions.entry(symbol.clone())
                     .and_modify(|pos| {
                         let total_quantity = pos.quantity + quantity;
@@ -86,7 +78,7 @@ impl Backtester {
                 Ok(())
             }
             OrderSide::Sell => {
-                // Check if we have the position
+
                 if let Some(position) = self.positions.get_mut(&symbol) {
                     if position.quantity < quantity {
                         return Err("Insufficient position for trade".to_string());
@@ -96,8 +88,6 @@ impl Backtester {
                     self.cash += proceeds;
 
                     position.quantity -= quantity;
-
-                    // Remove position if fully closed
                     if position.quantity <= 0.0001 {
                         self.positions.remove(&symbol);
                     }
@@ -203,8 +193,6 @@ impl Backtester {
             prices.insert(symbol.clone(), bar.close);
             self.record_snapshot(bar.timestamp, &prices);
         }
-
-        // Close any remaining positions
         if let Some(last_bar) = bars.last() {
             let symbol = last_bar.symbol.clone();
             if let Some(position) = self.positions.get(&symbol).cloned() {
@@ -228,7 +216,7 @@ impl Backtester {
 
         let total_return = (final_value - self.initial_capital) / self.initial_capital;
         
-        // Calculate returns series
+
         let returns: Vec<f64> = self.portfolio_history.windows(2)
             .map(|w| {
                 if w[0].total_value == 0.0 {
@@ -238,12 +226,10 @@ impl Backtester {
                 }
             })
             .collect();
-
-        // Calculate metrics
         let sharpe_ratio = calculate_sharpe_ratio(&returns);
         let max_drawdown = calculate_max_drawdown(&self.portfolio_history);
         let win_rate = calculate_win_rate(&self.trade_history);
-        let total_trades = self.trade_history.len() / 2; // Buy + Sell = 1 trade
+        let total_trades = self.trade_history.len() / 2;
         
         let total_commission: f64 = self.trade_history.iter().map(|t| t.commission).sum();
         
@@ -262,8 +248,6 @@ impl Backtester {
         }
     }
 }
-
-/// Backtest result with performance metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BacktestResult {
     pub strategy_name: String,
@@ -318,8 +302,6 @@ fn calculate_sharpe_ratio(returns: &[f64]) -> f64 {
     if std_dev == 0.0 {
         return 0.0;
     }
-
-    // Annualize assuming daily data (252 trading days)
     let annualized_return = mean_return * 252.0;
     let annualized_std = std_dev * (252.0_f64).sqrt();
     
@@ -358,9 +340,9 @@ fn calculate_win_rate(trade_history: &[TradeExecution]) -> f64 {
     let mut i = 0;
 
     while i < trade_history.len() - 1 {
-        // Find pairs of buy/sell
+
         if trade_history[i].side == OrderSide::Buy {
-            // Find the corresponding sell
+
             if let Some(sell_idx) = trade_history[i+1..].iter()
                 .position(|t| t.side == OrderSide::Sell && t.symbol == trade_history[i].symbol) {
                 

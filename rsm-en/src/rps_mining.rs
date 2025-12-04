@@ -50,7 +50,7 @@ pub struct Player {
 
 impl Player {
     pub fn new(id: u32, required_wins: u32, base_seed: u64) -> Self {
-        // Create unique seed for each player
+
         let mut hasher = Sha256::new();
         hasher.update(base_seed.to_be_bytes());
         hasher.update(id.to_be_bytes());
@@ -70,7 +70,7 @@ impl Player {
     }
 
     pub fn play_game(&mut self, blockchain_move: Move) -> GameResult {
-        // Generate player move based on current state
+
         let game_seed = self.seed.wrapping_add(self.games_played as u64);
         let player_move = Move::from_seed(game_seed);
         
@@ -113,21 +113,21 @@ impl RPSMiningConfig {
         let blocks = self.blocks_mined;
         
         if blocks == 0 {
-            // First block: all 100 players need 1 win
+
             requirements.resize(100, 1);
         } else {
-            // Each subsequent block increases difficulty
+
             let players_with_extra_wins = std::cmp::min(blocks, 100);
             let players_with_one_win = 100 - players_with_extra_wins;
             
-            // Players that need only 1 win
+
             for _ in 0..players_with_one_win {
                 requirements.push(1);
             }
             
-            // Players that need multiple wins
+
             for i in 0..players_with_extra_wins {
-                requirements.push(2 + (i / 100)); // Increment every 100 blocks
+                requirements.push(2 + (i / 100));
             }
         }
         
@@ -166,7 +166,7 @@ impl RPSMiner {
     }
 
     pub fn mine_block(&mut self, block_data: &str) -> Result<RPSMiningResult, String> {
-        // Generate blockchain seed based on block data and current state
+
         let mut hasher = Sha256::new();
         hasher.update(block_data.as_bytes());
         hasher.update(self.blockchain_seed.to_be_bytes());
@@ -185,17 +185,13 @@ impl RPSMiner {
             round += 1;
             let mut all_players_won = true;
             let mut round_games = 0;
-
-            // Parallel simulation of games (in reality, you'd use CUDA here)
             for player in &mut self.players {
                 if !player.has_won() {
-                    // Generate blockchain move for this round
+
                     let blockchain_move_seed = block_seed
                         .wrapping_add(round as u64)
                         .wrapping_add(player.id as u64);
                     let blockchain_move = Move::from_seed(blockchain_move_seed);
-
-                    // Player keeps playing until they win this round
                     let mut player_won_round = false;
                     while !player_won_round {
                         let result = player.play_game(blockchain_move);
@@ -204,7 +200,7 @@ impl RPSMiner {
                         if result == GameResult::PlayerWin {
                             player_won_round = true;
                         }
-                        // If tie or blockchain wins, player plays again
+
                     }
 
                     if !player.has_won() {
@@ -230,14 +226,12 @@ impl RPSMiner {
                     winning_players: self.players.clone(),
                     final_seed: block_seed,
                 };
-
-                // Reset players for next block and update config
                 for player in &mut self.players {
                     player.reset();
                 }
                 self.config.blocks_mined += 1;
                 
-                // Update win requirements for next block
+
                 let new_requirements = self.config.get_win_requirements();
                 for (i, &required_wins) in new_requirements.iter().enumerate() {
                     if let Some(player) = self.players.get_mut(i) {
@@ -247,8 +241,6 @@ impl RPSMiner {
 
                 return Ok(result);
             }
-
-            // Safety check to prevent infinite loops
             if round > 1000000 {
                 return Err("Mining timeout: too many rounds".to_string());
             }
@@ -295,7 +287,7 @@ pub struct DifficultyInfo {
 
 impl DifficultyInfo {
     pub fn difficulty_score(&self) -> f64 {
-        // Calculate difficulty as a weighted score
+
         let mut score = 0.0;
         for (&wins, &count) in &self.win_distribution {
             score += (wins as f64).powi(2) * count as f64;
@@ -347,17 +339,17 @@ mod tests {
     fn test_difficulty_progression() {
         let mut config = RPSMiningConfig::new();
         
-        // First block: all need 1 win
+
         let req1 = config.get_win_requirements();
         assert!(req1.iter().all(|&x| x == 1));
         
-        // Second block: 99 need 1 win, 1 needs 2 wins
+
         config.blocks_mined = 1;
         let req2 = config.get_win_requirements();
         assert_eq!(req2.iter().filter(|&&x| x == 1).count(), 99);
         assert_eq!(req2.iter().filter(|&&x| x == 2).count(), 1);
         
-        // Third block: 98 need 1 win, 2 need 2 wins
+
         config.blocks_mined = 2;
         let req3 = config.get_win_requirements();
         assert_eq!(req3.iter().filter(|&&x| x == 1).count(), 98);

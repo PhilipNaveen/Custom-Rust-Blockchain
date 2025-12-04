@@ -1,33 +1,29 @@
 use serde::{Deserialize, Serialize};
 use crate::market::OrderSide;
-
-/// Trader type with different behavior patterns
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TraderType {
-    Retail,           // Small trades, infrequent, noise traders
-    Institutional,    // Large trades, less frequent, informed
-    HFT,              // Very frequent, small to medium, market making
-    MarketMaker,      // Continuous quoting, provide liquidity
-    Whale,            // Very large trades, rare but impactful
-    Momentum,         // Follow trends, medium frequency
-    Arbitrageur,      // Quick in/out, balanced buy/sell
+    Retail,
+    Institutional,
+    HFT,
+    MarketMaker,
+    Whale,
+    Momentum,
+    Arbitrageur,
 }
-
-/// Individual trader with persistent behavior
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trader {
     pub id: String,
     pub trader_type: TraderType,
     pub capital: f64,
-    pub activity_level: f64,        // 0.0 to 1.0
+    pub activity_level: f64,
     pub avg_trade_size: f64,
     pub trade_size_variance: f64,
     pub win_rate: f64,               // How often they're "right"
-    pub patience: f64,               // Willingness to wait for fills
-    pub aggression: f64,             // Willingness to cross spread
+    pub patience: f64,
+    pub aggression: f64,
     pub risk_tolerance: f64,
     
-    // State
+
     pub trades_today: usize,
     pub pnl: f64,
     pub position: f64,
@@ -79,31 +75,31 @@ impl Trader {
         }
     }
     
-    /// Determine if trader is active this period
+
     pub fn is_active(&self, random: f64) -> bool {
         random < self.activity_level
     }
     
-    /// Generate trade size for this trader
+
     pub fn generate_trade_size(&self, random: f64, price: f64) -> f64 {
         let variance_factor = 1.0 + (random - 0.5) * self.trade_size_variance;
         let size_dollars = self.avg_trade_size * variance_factor;
         let size = size_dollars / price;
         
-        // Adjust based on current position (risk management)
+
         let position_pct = self.position.abs() / (self.capital / price);
         if position_pct > 0.5 {
-            size * 0.5  // Reduce size if already heavily positioned
+            size * 0.5
         } else {
             size
         }
     }
     
-    /// Determine order side based on trader type and market conditions
+
     pub fn determine_side(&self, price: f64, price_change: f64, random: f64) -> OrderSide {
         match self.trader_type {
             TraderType::Retail => {
-                // Noise traders - mostly random with slight trend following
+
                 if random < 0.5 + price_change * 5.0 {
                     OrderSide::Buy
                 } else {
@@ -111,9 +107,9 @@ impl Trader {
                 }
             }
             TraderType::Institutional => {
-                // Informed traders - contrarian with good timing
+
                 if random < self.win_rate {
-                    // "Right" direction - fade extremes
+
                     if price_change > 0.01 {
                         OrderSide::Sell
                     } else if price_change < -0.01 {
@@ -132,9 +128,9 @@ impl Trader {
                 }
             }
             TraderType::HFT | TraderType::Arbitrageur => {
-                // Balanced, looking for tiny edges
+
                 if self.position > 0.0 {
-                    OrderSide::Sell  // Mean revert position
+                    OrderSide::Sell
                 } else if self.position < 0.0 {
                     OrderSide::Buy
                 } else if random < 0.5 {
@@ -144,7 +140,7 @@ impl Trader {
                 }
             }
             TraderType::MarketMaker => {
-                // Provide liquidity on both sides (handled elsewhere)
+
                 if random < 0.5 {
                     OrderSide::Buy
                 } else {
@@ -152,11 +148,11 @@ impl Trader {
                 }
             }
             TraderType::Whale => {
-                // Strategic, informed, contrarian
+
                 if price_change > 0.02 {
-                    OrderSide::Sell  // Sell into strength
+                    OrderSide::Sell
                 } else if price_change < -0.02 {
-                    OrderSide::Buy   // Buy the dip
+                    OrderSide::Buy
                 } else if random < 0.5 {
                     OrderSide::Buy
                 } else {
@@ -164,7 +160,7 @@ impl Trader {
                 }
             }
             TraderType::Momentum => {
-                // Follow trends
+
                 if price_change > 0.005 {
                     OrderSide::Buy
                 } else if price_change < -0.005 {
@@ -178,7 +174,7 @@ impl Trader {
         }
     }
     
-    /// Determine order aggressiveness (market vs limit)
+
     pub fn is_aggressive_order(&self, random: f64) -> bool {
         random < self.aggression
     }
@@ -202,8 +198,6 @@ impl Trader {
         self.trades_today = 0;
     }
 }
-
-/// Population of traders with realistic distribution
 #[derive(Debug, Clone)]
 pub struct TraderPopulation {
     pub traders: Vec<Trader>,
@@ -215,53 +209,53 @@ impl TraderPopulation {
         let mut traders = Vec::new();
         let mut total_capital = 0.0;
         
-        // Create heterogeneous population
+
         
-        // 1000 retail traders (70% of population, 20% of capital)
+
         for i in 0..1000 {
-            let capital = 1000.0 + (i as f64 * 5.0);  // $1k - $6k
+            let capital = 1000.0 + (i as f64 * 5.0);
             traders.push(Trader::new(format!("retail_{}", i), TraderType::Retail, capital));
             total_capital += capital;
         }
         
-        // 100 institutional traders (7% of population, 40% of capital)
+
         for i in 0..100 {
-            let capital = 50000.0 + (i as f64 * 1000.0);  // $50k - $150k
+            let capital = 50000.0 + (i as f64 * 1000.0);
             traders.push(Trader::new(format!("inst_{}", i), TraderType::Institutional, capital));
             total_capital += capital;
         }
         
-        // 200 HFT traders (14% of population, 15% of capital)
+
         for i in 0..200 {
-            let capital = 10000.0 + (i as f64 * 200.0);  // $10k - $50k
+            let capital = 10000.0 + (i as f64 * 200.0);
             traders.push(Trader::new(format!("hft_{}", i), TraderType::HFT, capital));
             total_capital += capital;
         }
         
-        // 50 market makers (3.5% of population, 10% of capital)
+
         for i in 0..50 {
-            let capital = 30000.0 + (i as f64 * 500.0);  // $30k - $55k
+            let capital = 30000.0 + (i as f64 * 500.0);
             traders.push(Trader::new(format!("mm_{}", i), TraderType::MarketMaker, capital));
             total_capital += capital;
         }
         
-        // 10 whales (0.7% of population, 10% of capital)
+
         for i in 0..10 {
-            let capital = 150000.0 + (i as f64 * 10000.0);  // $150k - $240k
+            let capital = 150000.0 + (i as f64 * 10000.0);
             traders.push(Trader::new(format!("whale_{}", i), TraderType::Whale, capital));
             total_capital += capital;
         }
         
-        // 50 momentum traders (3.5% of population, 3% of capital)
+
         for i in 0..50 {
-            let capital = 8000.0 + (i as f64 * 200.0);  // $8k - $18k
+            let capital = 8000.0 + (i as f64 * 200.0);
             traders.push(Trader::new(format!("momentum_{}", i), TraderType::Momentum, capital));
             total_capital += capital;
         }
         
-        // 20 arbitrageurs (1.4% of population, 2% of capital)
+
         for i in 0..20 {
-            let capital = 15000.0 + (i as f64 * 500.0);  // $15k - $25k
+            let capital = 15000.0 + (i as f64 * 500.0);
             traders.push(Trader::new(format!("arb_{}", i), TraderType::Arbitrageur, capital));
             total_capital += capital;
         }

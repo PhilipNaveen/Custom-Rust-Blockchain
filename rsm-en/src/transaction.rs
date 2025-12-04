@@ -25,10 +25,10 @@ impl Transaction {
             amount,
             nonce,
             timestamp,
-            hash: Hash::from_string(""), // Temporary
+            hash: Hash::from_string(""),
         };
         
-        // Calculate the actual hash
+
         tx.hash = tx.calculate_hash();
         tx
     }
@@ -79,7 +79,7 @@ impl Block {
             transactions,
             previous_hash,
             merkle_root,
-            hash: Hash::from_string(""), // Temporary
+            hash: Hash::from_string(""),
             rps_mining_result: None,
         };
         
@@ -125,7 +125,7 @@ impl Block {
     }
 
     pub fn mine_block_rps(&mut self, rps_miner: &mut crate::rps_mining::RPSMiner) -> Result<(), String> {
-        // Create block data for RPS mining
+
         let block_data = format!(
             "{}{}{}{}",
             self.index,
@@ -134,7 +134,7 @@ impl Block {
             self.merkle_root.to_hex()
         );
         
-        // Use RPS mining to mine the block
+
         match rps_miner.mine_block(&block_data) {
             Ok(mining_result) => {
                 self.rps_mining_result = Some(mining_result.clone());
@@ -150,7 +150,7 @@ impl Block {
 
     #[allow(dead_code)]
     pub fn mine_block(&mut self, difficulty: usize) {
-        // Legacy function for compatibility - now uses minimal computation
+
         let target = "0".repeat(difficulty);
         let mut nonce = 0u64;
         
@@ -176,17 +176,13 @@ impl Block {
 
     #[allow(dead_code)]
     pub fn is_valid(&self, previous_block: Option<&Block>) -> bool {
-        // Check if hash is correctly calculated
+
         if self.hash != self.calculate_hash() {
             return false;
         }
-
-        // Check if merkle root is correct
         if self.merkle_root != Self::calculate_merkle_root(&self.transactions) {
             return false;
         }
-
-        // Check if previous hash matches
         if let Some(prev_block) = previous_block {
             if self.previous_hash != prev_block.hash {
                 return false;
@@ -195,10 +191,8 @@ impl Block {
                 return false;
             }
         } else if self.index != 0 {
-            return false; // Genesis block should have index 0
+            return false;
         }
-
-        // Check if all transactions are valid
         for tx in &self.transactions {
             if !tx.is_valid() {
                 return false;
